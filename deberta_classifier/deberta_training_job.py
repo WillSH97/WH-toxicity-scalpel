@@ -71,6 +71,8 @@ learning_rate = 2e-5
 optimizer = AdamW(model.parameters(), lr=learning_rate)
 num_epochs = 15
 
+SAVE_PATH = "deberta_checkpoints/"
+
 
 train_dataloader = DataLoader(
     train_set, shuffle=True, batch_size=batch_size, collate_fn=data_collator
@@ -96,14 +98,12 @@ print(num_training_steps)
 
 progress_bar = tqdm(range(num_training_steps))
 
-train_batch_loss = []
-val_batch_loss = []
-
 train_epoch_loss = []
 val_epoch_loss = []
 
 model.train()
 for epoch in range(num_epochs):
+    train_batch_loss = []
     for batch in train_dataloader:
         batch = {k: v.to(device) for k, v in batch.items()}
         outputs = model(**batch)
@@ -118,30 +118,22 @@ for epoch in range(num_epochs):
         progress_bar.update(1)
 
         # batch eval loss ---? required?
-        model.eval()
-        temp_val_batch_loss=[]
-        for batch in eval_dataloader:
-            batch = {k: v.to(device) for k, v in batch.items()}
-            outputs = model(**batch)
-            temp_val_loss = outputs.loss
-            temp_val_batch_loss.append(float(temp_val_loss))
-        val_batch_loss = np.mean(temp_val_batch_loss)
-        train_batch_loss.append(val_batch_loss)
+        # model.eval()
+        # temp_val_batch_loss=[]
+        # for batch in eval_dataloader:
+        #     batch = {k: v.to(device) for k, v in batch.items()}
+        #     outputs = model(**batch)
+        #     temp_val_loss = outputs.loss
+        #     temp_val_batch_loss.append(float(temp_val_loss))
+        # val_batch_loss = np.mean(temp_val_batch_loss)
+        # train_batch_loss.append(val_batch_loss)
 
         ### ADD PRINT STATEMENT HERE
-        print(f"EPOCH: {epoch} --- train loss: {loss} --- val loss: {val_batch_loss}")
+        print(f"EPOCH: {epoch} --- train loss: {loss}")
         
     # eval per epoch ???
     model.eval()
-    temp_train_epoch_loss = []
-    temp_val_epoch_loss = []
-    for batch in train_dataloader:
-        batch = {k: v.to(device) for k, v in batch.items()}
-        outputs = model(**batch)
-        loss = outputs.loss
-        temp_train_batch_loss.append(float(loss))
-
-    train_epoch_loss_value = np.mean(temp_train_epoch_loss)
+    train_epoch_loss_value = np.mean(train_batch_loss)
     train_epoch_loss.append(train_epoch_loss_value)
         
     for batch in eval_dataloader:
@@ -155,6 +147,8 @@ for epoch in range(num_epochs):
 
     print("~~~~~~~~~OVERALL EPOCH LOSS~~~~~~~~~")
     print(f"EPOCH: {epoch} --- train loss: {train_epoch_loss_value} --- val loss: {val_epoch_loss_value}")
+    torch.save(model.state_dict(), SAVE_PATH+f"deberta_finetune_epoch{epoch}")
+    print(f"saved model checkpoint to {SAVE_PATH}/deberta_finetune_epoch{epoch}")
 
 
     
