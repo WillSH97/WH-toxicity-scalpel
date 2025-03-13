@@ -13,6 +13,8 @@ from transformers import get_scheduler
 
 from tqdm.auto import tqdm
 
+import pickle
+
 model_name = 'microsoft/deberta-v3-base'
 
 tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -133,7 +135,7 @@ for epoch in range(num_epochs):
         
     # eval per epoch ???
     model.eval()
-    train_epoch_loss_value = np.mean(train_batch_loss)
+    train_epoch_loss_value = float(np.mean(train_batch_loss))
     train_epoch_loss.append(train_epoch_loss_value)
         
     for batch in eval_dataloader:
@@ -142,14 +144,20 @@ for epoch in range(num_epochs):
         loss = outputs.loss
         temp_val_batch_loss.append(float(loss))
 
-    val_epoch_loss_value = np.mean(temp_val_batch_loss)
+    val_epoch_loss_value = float(np.mean(temp_val_batch_loss))
     val_epoch_loss.append(val_epoch_loss_value)
 
     print("~~~~~~~~~OVERALL EPOCH LOSS~~~~~~~~~")
     print(f"EPOCH: {epoch} --- train loss: {train_epoch_loss_value} --- val loss: {val_epoch_loss_value}")
     torch.save(model.state_dict(), SAVE_PATH+f"deberta_finetune_epoch{epoch}")
-    print(f"saved model checkpoint to {SAVE_PATH}/deberta_finetune_epoch{epoch}")
+    print(f"saved model checkpoint to {SAVE_PATH}deberta_finetune_epoch{epoch}")
+
+#train and val loss curve csv outputs
+pd.DataFrame(np.array([train_epoch_loss, val_epoch_loss]).T, columns=["train", "eval"]).to_csv("train_val_loss.csv")
+
+#export test set for eval
+with open("test_set.pickle", "wb") as f:
+    pickle.dump(test_set, f)
 
 
-    
     
