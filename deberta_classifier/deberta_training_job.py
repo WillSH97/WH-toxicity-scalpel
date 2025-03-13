@@ -157,10 +157,10 @@ for epoch in range(num_epochs):
     print(f"saved model checkpoint to {SAVE_PATH}deberta_finetune_epoch{epoch}")
 
 #train and val loss curve csv outputs
-pd.DataFrame(np.array([train_epoch_loss, val_epoch_loss]).T, columns=["train", "eval"]).to_csv("train_val_loss.csv")
+pd.DataFrame(np.array([train_epoch_loss, val_epoch_loss]).T, columns=["train", "eval"]).to_csv(f"{SAVE_PATH}train_val_loss.csv")
 
 #export test set for eval
-with open("test_set.pickle", "wb") as f:
+with open(f"{SAVE_PATH}test_set.pickle", "wb") as f:
     pickle.dump(test_set, f)
 
 
