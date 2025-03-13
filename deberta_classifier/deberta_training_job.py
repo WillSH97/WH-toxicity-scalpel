@@ -7,6 +7,8 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+from torch.nn import CrossEntropyLoss
+
 from transformers import AdamW
 
 from transformers import get_scheduler
@@ -28,6 +30,8 @@ model.to(device)
 raw_data = pd.read_csv('../datasets/biasly/biasly_prepared_df.csv')
 
 len(raw_data)
+
+proportion_pos = float(np.mean(raw_data['misogynistic_label']))
 
 #add data via pandas
 tokenized_data = pd.DataFrame([tokenizer(x) for x in raw_data["datapoint"]])
@@ -68,16 +72,19 @@ train_set, val_set, test_set = torch.utils.data.random_split(
     generator=generator
 )
 
-
+# HYPERPARAMS AND OTEHR VOLATILE VARS
 data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 batch_size = 4
 learning_rate = 2e-5
 optimizer = AdamW(model.parameters(), lr=learning_rate)
 num_epochs = 15
+loss_fn=CrossEntropyLoss(weight=torch.tensor([proportion_pos, 1-proportion_pos]).to(device)) #rebalancing weights so that both classes are equal in importance for loss
 
 SAVE_PATH = "deberta_checkpoints/"
 
 os.makedirs(SAVE_PATH, exist_ok = True)
+
+#DATALOADERS
 
 train_dataloader = DataLoader(
     train_set, shuffle=True, batch_size=batch_size, collate_fn=data_collator
@@ -86,12 +93,8 @@ eval_dataloader = DataLoader(
     val_set, batch_size=batch_size, collate_fn=data_collator
 )
 
-# HYPERPARAMTETERS
 
-
-
-
-
+#LOOP
 num_training_steps = num_epochs * len(train_dataloader)
 lr_scheduler = get_scheduler(
     "linear",
@@ -113,7 +116,11 @@ for epoch in range(num_epochs):
         batch = {k: v.to(device) for k, v in batch.items()}
         outputs = model(**batch)
         loss = outputs.loss
-        train_batch_loss.append(float(loss))
+        logits = outputs.logits
+
+        # Compute the loss using CrossEntropyLoss
+        labels = batch["labels"]
+        loss = loss_fn(logits.view(-1, logits.size(-1)), labels.view(-1))
         #eval per batch?
         
         loss.backward()
