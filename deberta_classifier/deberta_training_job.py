@@ -115,7 +115,6 @@ for epoch in range(num_epochs):
     for batch in train_dataloader:
         batch = {k: v.to(device) for k, v in batch.items()}
         outputs = model(**batch)
-        loss = outputs.loss
         logits = outputs.logits
 
         # Compute the loss using CrossEntropyLoss
@@ -152,7 +151,12 @@ for epoch in range(num_epochs):
     for batch in eval_dataloader:
         batch = {k: v.to(device) for k, v in batch.items()}
         outputs = model(**batch)
-        loss = outputs.loss
+        logits = outputs.logits
+
+        # Compute the loss using CrossEntropyLoss
+        labels = batch["labels"]
+        loss = loss_fn(logits.view(-1, logits.size(-1)), labels.view(-1))
+        #eval per batch?
         temp_val_batch_loss.append(float(loss))
 
     val_epoch_loss_value = float(np.mean(temp_val_batch_loss))
