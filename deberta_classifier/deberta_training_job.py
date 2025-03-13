@@ -137,7 +137,8 @@ for epoch in range(num_epochs):
     model.eval()
     train_epoch_loss_value = float(np.mean(train_batch_loss))
     train_epoch_loss.append(train_epoch_loss_value)
-        
+
+    temp_val_batch_loss = []
     for batch in eval_dataloader:
         batch = {k: v.to(device) for k, v in batch.items()}
         outputs = model(**batch)
