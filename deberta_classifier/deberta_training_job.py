@@ -15,6 +15,8 @@ from tqdm.auto import tqdm
 
 import pickle
 
+import os
+
 model_name = 'microsoft/deberta-v3-base'
 
 tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -75,6 +77,7 @@ num_epochs = 15
 
 SAVE_PATH = "deberta_checkpoints/"
 
+os.makedirs(SAVE_PATH, exist_ok = True)
 
 train_dataloader = DataLoader(
     train_set, shuffle=True, batch_size=batch_size, collate_fn=data_collator
