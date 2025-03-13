@@ -120,6 +120,7 @@ for epoch in range(num_epochs):
         # Compute the loss using CrossEntropyLoss
         labels = batch["labels"]
         loss = loss_fn(logits.view(-1, logits.size(-1)), labels.view(-1))
+        train_batch_loss.append(float(loss))
         #eval per batch?
         
         loss.backward()
