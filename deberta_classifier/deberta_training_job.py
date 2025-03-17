@@ -74,10 +74,10 @@ train_set, val_set, test_set = torch.utils.data.random_split(
 
 # HYPERPARAMS AND OTEHR VOLATILE VARS
 data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
-batch_size = 4
+batch_size = 32
 learning_rate = 2e-5
 optimizer = AdamW(model.parameters(), lr=learning_rate)
-num_epochs = 15
+num_epochs = 5
 loss_fn=CrossEntropyLoss(weight=torch.tensor([proportion_pos, 1-proportion_pos]).to(device)) #rebalancing weights so that both classes are equal in importance for loss
 
 SAVE_PATH = "deberta_checkpoints/"
