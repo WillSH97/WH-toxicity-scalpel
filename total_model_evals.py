@@ -23,7 +23,7 @@ from exp_datasets.minipile.load_minipile import sample_minipile_text
 from deberta_classifier.deberta_inference import deberta_classify
 from detoxify_funcs.detoxify_funcs import detoxify_classify
 from farrell.farrell_inference import farrell_lexicon
-from llama_guard.llama_guard_moderator import moderate as llamaguard_moderate
+from llama_guard_inf.llama_guard_moderator import moderate as llamaguard_moderate
 from mauve.mauve_engine import mauve_scores
 from perplexity.perplexity_engine import  ppl
 from pythia.pythia_inference import load_model, pythia_generate
