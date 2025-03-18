@@ -33,7 +33,7 @@ def ppl(model, tokenizer, candidate_str: str):
         target_ids[:, :-trg_len] = -100
     
         with torch.no_grad():
-            outputs = model(input_ids, labels=target_ids)
+            outputs = model(input_ids, labels=target_ids) ### <<< if reqd - could batch this operation by preparing dataset beforehand
     
             # loss is calculated using CrossEntropyLoss which averages over valid labels
             # N.B. the model only calculates loss over trg_len - 1 labels, because it internally shifts the labels
