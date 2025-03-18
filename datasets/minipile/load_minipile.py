@@ -17,4 +17,4 @@ random.seed(42)
 
 sample=random.sample(dataset["text"], k=int(0.03*float(len(dataset)))) #sample 30k rows
 
-minipile_text = " ".join(sample)
+sample_minipile_text = " ".join(sample)
