@@ -19,7 +19,7 @@ then on the outputs:
 - MAUVE on Guest
 '''
 
-from datasets.minipile.load_minipile import sample_minipile_text
+from exp_datasets.minipile.load_minipile import sample_minipile_text
 from deberta_classifier.deberta_inference import deberta_classify
 from detoxify.detoxify_funcs import detoxify_classify
 from farrel.farrell_inference import farrell_lexicon
