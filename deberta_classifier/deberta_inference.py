@@ -7,21 +7,23 @@ import numpy as np
 
 from torch.nn import Softmax
 
-model_name = 'microsoft/deberta-v3-base'
-
-MODEL_WEIGHT_PATH="deberta_finetune_epoch1" #replace with finetune model weight path
-
-#MODEL LOAD SCRIPTS
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForSequenceClassification.from_pretrained(model_name)
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-model.load_state_dict(torch.load(MODEL_WEIGHT_PATH, weights_only=True))
-
-model.to(device)
-
-model.eval()
+def load_deberta_finetune_model(dir_string: str):
+    model_name = 'microsoft/deberta-v3-base'
+    
+    MODEL_WEIGHT_PATH="deberta_finetune_epoch1" #replace with finetune model weight path
+    
+    #MODEL LOAD SCRIPTS
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSequenceClassification.from_pretrained(model_name)
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    model.load_state_dict(torch.load(MODEL_WEIGHT_PATH, weights_only=True))
+    
+    model.to(device)
+    
+    model.eval()
+    return model, tokenizer, device
 
 
 m=Softmax()
@@ -42,7 +44,7 @@ class BiaslyInfDataset(Dataset):
 
 
 #FUNCS
-def deberta_classify(input_str_list: str, batch_size: int = 32):
+def deberta_classify(model, tokenizer, device, input_str_list: str, batch_size: int = 32):
     '''
     simple func to return results
 

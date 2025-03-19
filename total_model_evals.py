@@ -23,7 +23,7 @@ import huggingface_hub
 huggingface_hub.login(token='')
 
 from exp_datasets.minipile.load_minipile import sample_minipile_text
-from deberta_classifier.deberta_inference import deberta_classify
+from deberta_classifier.deberta_inference import load_deberta_finetune_model, deberta_classify
 from detoxify_funcs.detoxify_funcs import detoxify_classify
 from farrell.farrell_inference import farrell_lexicon
 from llama_guard_inf.llama_guard_moderator import moderate as llamaguard_moderate
@@ -39,6 +39,8 @@ BASE_DIR = ''
 list_of_models = ['']
 TOKENIZER = '' #in case there's an issue - also assuming all tokenizers are identical for all model sizes.
 results = {}
+#load deberta classifier
+deberta_model, deberta_tokenizer, deberta_device = load_deberta_finetune_model('') ### CHANGE STRING HERE
 
 #load all necessary data
 
@@ -55,6 +57,7 @@ eacl_nonMisog = [eacl_guest_dataset['datapoint'][i] for i in range(len(eacl_gues
 eacl_nonMisog_txt = " ".join(eacl_nonMisog)
 eacl_Misog = [eacl_guest_dataset['datapoint'][i] for i in range(len(eacl_guest_dataset)) if eacl_guest_dataset['misogynistic_label'][i]==1]
 eacl_Misog_txt = " ".join(eacl_Misog)
+
 
 for model_name in list_of_models:
     temp_model_results = {} #initialise temp results as dictionary
@@ -108,7 +111,7 @@ for model_name in list_of_models:
     temp_model_results["ZSNLI"] = ZSNLI_results
 
     #deberta classifier
-    deberta_results = deberta_classify(temp_model_results["toxicity_outputs"]) # inherently batched - can change batch_size param here if reqd.
+    deberta_results = deberta_classify(deberta_model, deberta_tokenizer, deberta_device, temp_model_results["toxicity_outputs"]) # inherently batched - can change batch_size param here if reqd.
 
     #Perplexity
     perplexity_results = {}
