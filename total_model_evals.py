@@ -18,9 +18,21 @@ then on the outputs:
 - Perplexity on Guest
 - MAUVE on Guest
 '''
+# env vars
+from dotenv import load_dotenv
+import json
+import os
+load_dotenv()
+
+HF_TOKEN = os.getenv('HF_TOKEN')
+BASE_DIR = os.getenv('BASE_DIR')
+MODEL_LIST = json.loads(os.getenv('MODEL_LIST'))
+TOKENIZER = os.getenv('TOKENIZER')
+DEBERTA_FT_PATH = os.getenv('DEBERTA_FT_PATH')
+
 #login for llama_guard
 import huggingface_hub
-huggingface_hub.login(token='')
+huggingface_hub.login(token=HF_TOKEN)
 
 from exp_datasets.minipile.load_minipile import sample_minipile_text
 from deberta_classifier.deberta_inference import load_deberta_finetune_model, deberta_classify
@@ -31,16 +43,11 @@ from mauve_inf.mauve_engine import mauve_scores
 from perplexity.perplexity_engine import  ppl
 from pythia.pythia_inference import load_model, pythia_generate
 from zeroshot_nli.zeroshot_nli_engine import misogyny_zsnli
-import os
 import pandas as pd
-import json
 
-BASE_DIR = ''
-list_of_models = ['']
-TOKENIZER = '' #in case there's an issue - also assuming all tokenizers are identical for all model sizes.
 results = {}
 #load deberta classifier
-deberta_model, deberta_tokenizer, deberta_device = load_deberta_finetune_model('') ### CHANGE STRING HERE
+deberta_model, deberta_tokenizer, deberta_device = load_deberta_finetune_model(DEBERTA_FT_PATH) ### CHANGE STRING HERE
 
 #load all necessary data
 
