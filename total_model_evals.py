@@ -141,14 +141,12 @@ for model_name in list_of_models:
         
 
     # FINAL RESULT WRITE
+    clean_model_name = model_name.split("/")[0] #assuming all root dirs here are the correct main name
     results[model_name] = temp_model_results
-
-
-
-
-
-
-
+    #dumping interim outputs in case it takes ages
+    with open(f"{clean_model_name}_results.json", 'w') as f:
+        json.dump(temp_model_results)
+    
 #save results
 with open('pythia_test_results_total.json', 'w') as f:
     json.dump(results, f)
