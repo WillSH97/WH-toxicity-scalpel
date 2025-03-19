@@ -5,7 +5,10 @@ stealing this code: https://huggingface.co/meta-llama/Meta-Llama-Guard-2-8B
 '''
 
 from transformers import AutoTokenizer, AutoModelForCausalLM
+import huggingface_hub
 import torch
+
+huggingface_hub.login(token='')
 
 model_id = "meta-llama/Meta-Llama-Guard-2-8B"
 device = "cuda"
