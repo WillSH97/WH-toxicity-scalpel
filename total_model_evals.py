@@ -18,6 +18,9 @@ then on the outputs:
 - Perplexity on Guest
 - MAUVE on Guest
 '''
+#login for llama_guard
+import huggingface_hub
+huggingface_hub.login(token='')
 
 from exp_datasets.minipile.load_minipile import sample_minipile_text
 from deberta_classifier.deberta_inference import deberta_classify
