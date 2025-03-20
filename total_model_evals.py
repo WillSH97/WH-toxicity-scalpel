@@ -60,9 +60,9 @@ semEval_nonMisog_txt = " ".join(semEval_nonMisog)
 semEval_Misog = [semEval['datapoint'][i] for i in range(len(semEval)) if semEval['misogynistic_label'][i]=='sexist']
 semEval_Misog_txt = " ".join(semEval_Misog)
 
-eacl_nonMisog = [eacl_guest_dataset['datapoint'][i] for i in range(len(eacl_guest_dataset)) if eacl_guest_dataset['misogynistic_label'][i]==0]
+eacl_nonMisog = [str(eacl_guest_dataset['datapoint'][i]) for i in range(len(eacl_guest_dataset)) if eacl_guest_dataset['misogynistic_label'][i]==0]
 eacl_nonMisog_txt = " ".join(eacl_nonMisog)
-eacl_Misog = [eacl_guest_dataset['datapoint'][i] for i in range(len(eacl_guest_dataset)) if eacl_guest_dataset['misogynistic_label'][i]==1]
+eacl_Misog = [str(eacl_guest_dataset['datapoint'][i]) for i in range(len(eacl_guest_dataset)) if eacl_guest_dataset['misogynistic_label'][i]==1]
 eacl_Misog_txt = " ".join(eacl_Misog)
 
 
