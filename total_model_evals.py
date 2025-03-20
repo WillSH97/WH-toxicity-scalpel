@@ -66,7 +66,7 @@ eacl_Misog = [str(eacl_guest_dataset['datapoint'][i]) for i in range(len(eacl_gu
 eacl_Misog_txt = " ".join(eacl_Misog)
 
 
-for model_name in list_of_models:
+for model_name in MODEL_LIST:
     temp_model_results = {} #initialise temp results as dictionary
     # load model
     model_dir = os.path.join(BASE_DIR, model_name)
