@@ -132,10 +132,10 @@ for model_name in list_of_models:
     #MAUVE
     mauve_results = {}
     mauve_scores(predictions, references)
-    mauve_results['semEval_nonMisog'] = mauve_scores(temp_model_results["toxicity_outputs"] semEval_nonMisog_txt)
-    mauve_results['semEval_Misog'] = mauve_scores(temp_model_results["toxicity_outputs"] semEval_Misog_txt)
-    mauve_results['eacl_nonMisog'] = mauve_scores(temp_model_results["toxicity_outputs"] eacl_nonMisog_txt)
-    mauve_results['eacl_Misog'] = mauve_scores(temp_model_results["toxicity_outputs"] eacl_Misog_txt)
+    mauve_results['semEval_nonMisog'] = mauve_scores(temp_model_results["toxicity_outputs"], semEval_nonMisog)
+    mauve_results['semEval_Misog'] = mauve_scores(temp_model_results["toxicity_outputs"], semEval_Misog)
+    mauve_results['eacl_nonMisog'] = mauve_scores(temp_model_results["toxicity_outputs"], eacl_nonMisog)
+    mauve_results['eacl_Misog'] = mauve_scores(temp_model_results["toxicity_outputs"], eacl_Misog)
 
     temp_model_results["mauve_misog"] = mauve_results    
         
