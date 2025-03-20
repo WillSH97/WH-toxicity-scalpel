@@ -10,7 +10,7 @@ from torch.nn import Softmax
 def load_deberta_finetune_model(dir_string: str):
     model_name = 'microsoft/deberta-v3-base'
     
-    MODEL_WEIGHT_PATH="deberta_finetune_epoch1" #replace with finetune model weight path
+    MODEL_WEIGHT_PATH=dir_string #replace with finetune model weight path
     
     #MODEL LOAD SCRIPTS
     tokenizer = AutoTokenizer.from_pretrained(model_name)
