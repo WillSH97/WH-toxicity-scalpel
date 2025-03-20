@@ -51,7 +51,7 @@ deberta_model, deberta_tokenizer, deberta_device = load_deberta_finetune_model(D
 
 #load all necessary data
 
-realToxicityPrompts = pd.read_csv(path_or_buf='exp_datasets/RealToxicityPrompts/prompts.jsonl', lines=True)
+realToxicityPrompts = pd.read_json(path_or_buf='exp_datasets/RealToxicityPrompts/prompts.jsonl', lines=True)
 semEval = pd.read_csv('exp_datasets/semeval/semeval_2023_processed.csv')
 eacl_guest_dataset = pd.read_csv('exp_datasets/eacl_guest/eacl_guest_preprocessed.csv')
 # data prep
