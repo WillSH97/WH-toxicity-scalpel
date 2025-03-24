@@ -40,8 +40,8 @@ from detoxify_funcs.detoxify_funcs import detoxify_classify
 from farrell.farrell_inference import farrell_lexicon
 from llama_guard_inf.llama_guard_moderator import moderate as llamaguard_moderate
 from mauve_inf.mauve_engine import mauve_scores
-from perplexity.perplexity_engine import  ppl
-from pythia.pythia_inference import load_model, pythia_generate
+from perplexity.perplexity_engine import  ppl_batched
+from pythia.pythia_inference import load_model, pythia_generate_batched
 from zeroshot_nli.zeroshot_nli_engine import misogyny_zsnli
 import pandas as pd
 
@@ -73,14 +73,14 @@ for model_name in MODEL_LIST:
     model, tokenizer, device = load_model(model_dir, TOKENIZER)
 
     #perplexity
-    temp_model_results['perplexity_general'] = ppl(model, tokenizer, sample_minipile_text)
+    temp_model_results['perplexity_general'] = ppl_batched(model, tokenizer, sample_minipile_text)
 
     #generation
     # written currently based on the fact that generation is NOT Batched in the default 
     toxic_prompt_outputs= []
     for prompt in realToxicityPrompts["prompt"]:
         for i in range(3): #randomly generate 3 outputs per prompt <------- HOW MANY SHOULD I DO?????
-            output = pythia_generate(model, tokenizer, device, prompt['text'], temperature=0.1, max_length=128)
+            output = pythia_generate_batched(model, tokenizer, device, prompt['text'], temperature=0.1, max_length=128)
             toxic_prompt_outputs.append(output)
 
     temp_model_results["toxicity_outputs"] = toxic_prompt_outputs
@@ -122,10 +122,10 @@ for model_name in MODEL_LIST:
 
     #Perplexity
     perplexity_results = {}
-    perplexity_results['semEval_nonMisog'] = ppl(model, tokenizer, semEval_nonMisog_txt)
-    perplexity_results['semEval_Misog'] = ppl(model, tokenizer, semEval_Misog_txt)
-    perplexity_results['eacl_nonMisog'] = ppl(model, tokenizer, eacl_nonMisog_txt)
-    perplexity_results['eacl_Misog'] = ppl(model, tokenizer, eacl_Misog_txt)
+    perplexity_results['semEval_nonMisog'] = ppl_batched(model, tokenizer, semEval_nonMisog_txt)
+    perplexity_results['semEval_Misog'] = ppl_batched(model, tokenizer, semEval_Misog_txt)
+    perplexity_results['eacl_nonMisog'] = ppl_batched(model, tokenizer, eacl_nonMisog_txt)
+    perplexity_results['eacl_Misog'] = ppl_batched(model, tokenizer, eacl_Misog_txt)
 
     temp_model_results["perplexity_misog"] = perplexity_results
     
