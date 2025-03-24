@@ -18,9 +18,24 @@ then on the outputs:
 - Perplexity on Guest
 - MAUVE on Guest
 '''
+# env vars
+from dotenv import load_dotenv
+import json
+import os
+load_dotenv()
+
+HF_TOKEN = os.getenv('HF_TOKEN')
+BASE_DIR = os.getenv('BASE_DIR')
+MODEL_LIST = json.loads(os.getenv('MODEL_LIST'))
+TOKENIZER = os.getenv('TOKENIZER')
+DEBERTA_FT_PATH = os.getenv('DEBERTA_FT_PATH')
+
+#login for llama_guard
+import huggingface_hub
+huggingface_hub.login(token=HF_TOKEN)
 
 from exp_datasets.minipile.load_minipile import sample_minipile_text
-from deberta_classifier.deberta_inference import deberta_classify
+from deberta_classifier.deberta_inference import load_deberta_finetune_model, deberta_classify
 from detoxify_funcs.detoxify_funcs import detoxify_classify
 from farrell.farrell_inference import farrell_lexicon
 from llama_guard_inf.llama_guard_moderator import moderate as llamaguard_moderate
@@ -28,18 +43,15 @@ from mauve_inf.mauve_engine import mauve_scores
 from perplexity.perplexity_engine import  ppl
 from pythia.pythia_inference import load_model, pythia_generate
 from zeroshot_nli.zeroshot_nli_engine import misogyny_zsnli
-import os
 import pandas as pd
-import json
 
-BASE_DIR = ''
-list_of_models = ['']
-TOKENIZER = '' #in case there's an issue - also assuming all tokenizers are identical for all model sizes.
 results = {}
+#load deberta classifier
+deberta_model, deberta_tokenizer, deberta_device = load_deberta_finetune_model(DEBERTA_FT_PATH) ### CHANGE STRING HERE
 
 #load all necessary data
 
-realToxicityPrompts = pd.read_csv(path_or_buf='exp_datasets/RealToxicityPrompts/prompts.jsonl', lines=True)
+realToxicityPrompts = pd.read_json(path_or_buf='exp_datasets/RealToxicityPrompts/prompts.jsonl', lines=True)
 semEval = pd.read_csv('exp_datasets/semeval/semeval_2023_processed.csv')
 eacl_guest_dataset = pd.read_csv('exp_datasets/eacl_guest/eacl_guest_preprocessed.csv')
 # data prep
@@ -48,12 +60,13 @@ semEval_nonMisog_txt = " ".join(semEval_nonMisog)
 semEval_Misog = [semEval['datapoint'][i] for i in range(len(semEval)) if semEval['misogynistic_label'][i]=='sexist']
 semEval_Misog_txt = " ".join(semEval_Misog)
 
-eacl_nonMisog = [eacl_guest_dataset['datapoint'][i] for i in range(len(eacl_guest_dataset)) if eacl_guest_dataset['misogynistic_label'][i]==0]
+eacl_nonMisog = [str(eacl_guest_dataset['datapoint'][i]) for i in range(len(eacl_guest_dataset)) if eacl_guest_dataset['misogynistic_label'][i]==0]
 eacl_nonMisog_txt = " ".join(eacl_nonMisog)
-eacl_Misog = [eacl_guest_dataset['datapoint'][i] for i in range(len(eacl_guest_dataset)) if eacl_guest_dataset['misogynistic_label'][i]==1]
+eacl_Misog = [str(eacl_guest_dataset['datapoint'][i]) for i in range(len(eacl_guest_dataset)) if eacl_guest_dataset['misogynistic_label'][i]==1]
 eacl_Misog_txt = " ".join(eacl_Misog)
 
-for model_name in list_of_models:
+
+for model_name in MODEL_LIST:
     temp_model_results = {} #initialise temp results as dictionary
     # load model
     model_dir = os.path.join(BASE_DIR, model_name)
@@ -105,7 +118,7 @@ for model_name in list_of_models:
     temp_model_results["ZSNLI"] = ZSNLI_results
 
     #deberta classifier
-    deberta_results = deberta_classify(temp_model_results["toxicity_outputs"]) # inherently batched - can change batch_size param here if reqd.
+    deberta_results = deberta_classify(deberta_model, deberta_tokenizer, deberta_device, temp_model_results["toxicity_outputs"]) # inherently batched - can change batch_size param here if reqd.
 
     #Perplexity
     perplexity_results = {}
@@ -119,23 +132,21 @@ for model_name in list_of_models:
     #MAUVE
     mauve_results = {}
     mauve_scores(predictions, references)
-    mauve_results['semEval_nonMisog'] = mauve_scores(temp_model_results["toxicity_outputs"] semEval_nonMisog_txt)
-    mauve_results['semEval_Misog'] = mauve_scores(temp_model_results["toxicity_outputs"] semEval_Misog_txt)
-    mauve_results['eacl_nonMisog'] = mauve_scores(temp_model_results["toxicity_outputs"] eacl_nonMisog_txt)
-    mauve_results['eacl_Misog'] = mauve_scores(temp_model_results["toxicity_outputs"] eacl_Misog_txt)
+    mauve_results['semEval_nonMisog'] = mauve_scores(temp_model_results["toxicity_outputs"], semEval_nonMisog)
+    mauve_results['semEval_Misog'] = mauve_scores(temp_model_results["toxicity_outputs"], semEval_Misog)
+    mauve_results['eacl_nonMisog'] = mauve_scores(temp_model_results["toxicity_outputs"], eacl_nonMisog)
+    mauve_results['eacl_Misog'] = mauve_scores(temp_model_results["toxicity_outputs"], eacl_Misog)
 
     temp_model_results["mauve_misog"] = mauve_results    
         
 
     # FINAL RESULT WRITE
+    clean_model_name = model_name.split("/")[0] #assuming all root dirs here are the correct main name
     results[model_name] = temp_model_results
-
-
-
-
-
-
-
+    #dumping interim outputs in case it takes ages
+    with open(f"{clean_model_name}_results.json", 'w') as f:
+        json.dump(temp_model_results)
+    
 #save results
 with open('pythia_test_results_total.json', 'w') as f:
     json.dump(results, f)
