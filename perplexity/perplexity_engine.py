@@ -15,6 +15,7 @@ import numpy as np
 # device = 'cuda' if torch.cuda.is_available else 'cpu'
 
 def ppl(model, tokenizer, candidate_str: str, device = 'cuda'):
+    model.to(device)
     
     encodings = tokenizer(candidate_str, return_tensors="pt")
     
@@ -81,6 +82,7 @@ def ppl_batched(model, tokenizer, candidate_str: str, batch_size=32, device = 'c
     Returns:
         Perplexity score for the input string
     """
+    model.to(device)
     encodings = tokenizer(candidate_str, return_tensors="pt")
     
     max_length = model.config.max_position_embeddings

@@ -44,6 +44,7 @@ from perplexity.perplexity_engine import  ppl_batched
 from pythia.pythia_inference import load_model, pythia_generate_batched
 from zeroshot_nli.zeroshot_nli_engine import misogyny_zsnli
 import pandas as pd
+import concurrent.futures
 
 results = {}
 #load deberta classifier
@@ -65,25 +66,64 @@ eacl_nonMisog_txt = " ".join(eacl_nonMisog)
 eacl_Misog = [str(eacl_guest_dataset['datapoint'][i]) for i in range(len(eacl_guest_dataset)) if eacl_guest_dataset['misogynistic_label'][i]==1]
 eacl_Misog_txt = " ".join(eacl_Misog)
 
+#define multiprocess batch 1
+def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicityPrompts):
+    # Use concurrent.futures to run perplexity and generation concurrently
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        # Submit perplexity calculation as a future
+        ppl_future = executor.submit(ppl_batched, model, tokenizer, sample_minipile_text, batch_size=2, device='cuda:0')
+        
+        # Prepare generation inputs (2 outputs per prompt)
+        toxic_inputs = [itm for itm in realToxicityPrompts["prompt"] for _ in range(2)]
+        
+        # Submit generation task
+        generation_future = executor.submit(
+            pythia_generate_batched, 
+            model, 
+            tokenizer, 
+            device, 
+            toxic_inputs, 
+            temperature=0.1, 
+            max_length=128, 
+            batch_size=4,
+            device='cuda:1'
+        )
+        
+        # Wait for and collect results
+        temp_model_results = {}
+        
+        # Get perplexity result
+        temp_model_results['perplexity_general'] = ppl_future.result()
+        
+        # Get generation outputs
+        temp_model_results["toxicity_outputs"] = generation_future.result()
+        
+        return temp_model_results
+
 
 for model_name in MODEL_LIST:
     temp_model_results = {} #initialise temp results as dictionary
     # load model
     model_dir = os.path.join(BASE_DIR, model_name)
-    model, tokenizer, device = load_model(model_dir, TOKENIZER)
+    model, tokenizer, temp_device = load_model(model_dir, TOKENIZER)
 
-    #perplexity
-    temp_model_results['perplexity_general'] = ppl_batched(model, tokenizer, sample_minipile_text, batch_size=2, device = 'cuda:0')
+    # #perplexity
+    # temp_model_results['perplexity_general'] = ppl_batched(model, tokenizer, sample_minipile_text, batch_size=2, device = 'cuda:0')
 
-    #generation
-    # written currently based on the fact that generation is NOT Batched in the default 
-    toxic_prompt_outputs= []
-    toxic_inputs = [itm for itm in realToxicityPrompts["prompt"] for _ in range(2)] #randomly generate 2 outputs per prompt <------- HOW MANY SHOULD I DO?????
-    output = pythia_generate_batched(model, tokenizer, device,  toxic_inputs, temperature=0.1, max_length=128, batch_size=4, device = 'cuda:1')
-    toxic_prompt_outputs.extend(output)
+    # #generation
+    # # written currently based on the fact that generation is NOT Batched in the default 
+    # toxic_prompt_outputs= []
+    # toxic_inputs = [itm for itm in realToxicityPrompts["prompt"] for _ in range(2)] #randomly generate 2 outputs per prompt <------- HOW MANY SHOULD I DO?????
+    # output = pythia_generate_batched(model, tokenizer, device,  toxic_inputs, temperature=0.1, max_length=128, batch_size=4, device = 'cuda:1')
+    # toxic_prompt_outputs.extend(output)
 
-    temp_model_results["toxicity_outputs"] = toxic_prompt_outputs
+    # temp_model_results["toxicity_outputs"] = toxic_prompt_outputs
 
+    # Run concurrent tasks
+    temp_model_results = general_ppl_and_textgen(model, tokenizer, device, sample_minipile_text, realToxicityPrompts)
+
+
+    # TO DO ------------
     #llama_guard
     llama_guard_results = []
     for output in temp_model_results["toxicity_outputs"]:

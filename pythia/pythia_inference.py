@@ -13,7 +13,7 @@ def load_model(MODEL_DIR, TOKENIZER_DIR):
         TOKENIZER_DIR,
     )
     
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = 'cpu' # 'cuda' if torch.cuda.is_available() else <---- deleting this because I need to send this model to a bunch of devices anyway
     model.to(device)
     return model, tokenizer, device
 
