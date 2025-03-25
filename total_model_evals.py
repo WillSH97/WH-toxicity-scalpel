@@ -39,6 +39,7 @@ from deberta_classifier.deberta_inference import load_deberta_finetune_model, de
 from detoxify_funcs.detoxify_funcs import detoxify_classify
 from farrell.farrell_inference import farrell_lexicon
 from llama_guard_inf.llama_guard_moderator import moderate as llamaguard_moderate
+from llama_guard_inf.llama_guard_moderator import load_llama_guard_model
 from mauve_inf.mauve_engine import mauve_scores
 from perplexity.perplexity_engine import  ppl_batched
 from pythia.pythia_inference import load_model, pythia_generate_batched
@@ -51,6 +52,9 @@ import gc
 results = {}
 #load deberta classifier
 deberta_model, deberta_tokenizer, deberta_device = load_deberta_finetune_model(DEBERTA_FT_PATH) ### CHANGE STRING HERE
+
+# load llama guard model
+llamaguard_model, llamaguard_tokenizer, llamaguard_device = load_llama_guard_model('cuda:2') #placing it on GPU_3 for now
 
 #load all necessary data
 
@@ -116,6 +120,71 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
         
         return temp_model_results
 
+def parallel_output_analysis(model, tokenizer, temp_model_results):
+    # Use concurrent.futures to run perplexity and generation concurrently
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+
+        #llama_guard concurrency
+        llama_guard_futures = []
+        for output in temp_model_results["toxicity_outputs"]:
+            llama_guard_futures.append(executor.submit(llamaguard_moderate, output, llamaguard_model, llamaguard_tokenizer, llamaguard_device))
+
+        #detoxify concurrency
+        detoxify_futures = []
+        for output in temp_model_results["toxicity_outputs"]:
+            detoxify_futures.append(executor.submit(detoxify_classify, output))
+    
+        #farrell lexicon
+        farrell_futures = []
+        for output in temp_model_results["toxicity_outputs"]:
+            farrell_futures.append(executor.submit(farrell_lexicon, output))
+    
+        #ZSNLI
+        ZSNLI_results = []
+        for output in temp_model_results["toxicity_outputs"]:
+            result = misogyny_zsnli(output)
+            farrell_results.append(result)
+    
+        temp_model_results["ZSNLI"] = ZSNLI_results
+    
+        #deberta classifier
+        deberta_results = deberta_classify(deberta_model, deberta_tokenizer, deberta_device, temp_model_results["toxicity_outputs"]) # inherently batched - can change batch_size param here if reqd.
+    
+        #Perplexity
+        perplexity_results = {}
+        perplexity_results['semEval_nonMisog'] = ppl_batched(model, tokenizer, semEval_nonMisog_txt)
+        perplexity_results['semEval_Misog'] = ppl_batched(model, tokenizer, semEval_Misog_txt)
+        perplexity_results['eacl_nonMisog'] = ppl_batched(model, tokenizer, eacl_nonMisog_txt)
+        perplexity_results['eacl_Misog'] = ppl_batched(model, tokenizer, eacl_Misog_txt)
+    
+        temp_model_results["perplexity_misog"] = perplexity_results
+        
+        #MAUVE
+        mauve_results = {}
+        mauve_results['semEval_nonMisog'] = mauve_scores(temp_model_results["toxicity_outputs"], semEval_nonMisog)
+        mauve_results['semEval_Misog'] = mauve_scores(temp_model_results["toxicity_outputs"], semEval_Misog)
+        mauve_results['eacl_nonMisog'] = mauve_scores(temp_model_results["toxicity_outputs"], eacl_nonMisog)
+        mauve_results['eacl_Misog'] = mauve_scores(temp_model_results["toxicity_outputs"], eacl_Misog)
+    
+        temp_model_results["mauve_misog"] = mauve_results   
+
+
+        # gather all results:
+        llama_guard_results = [future.result() for future in llama_guard_futures] #<---- TEMPORARY PLACEMENT DURING DEV - MOVE TO THE END OF FUNC FOR DEPLOYMENT
+        temp_model_results["llama_guard"] = llama_guard_results #<---- TEMPORARY PLACEMENT DURING DEV - MOVE TO THE END OF FUNC FOR DEPLOYMENT
+
+        detoxify_results = [future.result() for future in detoxify_futures]
+        temp_model_results["detoxify"] = detoxify_results
+
+        farrell_results = [future.result() for future in farrell_futures]
+        temp_model_results["farrell"] = farrell_results
+            
+
+
+
+
+
+
 
 for model_name in MODEL_LIST:
     temp_model_results = {} #initialise temp results as dictionary
@@ -139,7 +208,7 @@ for model_name in MODEL_LIST:
     temp_model_results = general_ppl_and_textgen(model, tokenizer, device, sample_minipile_text, realToxicityPrompts)
 
 
-    # TO DO ------------
+    # TO DO ------------ FULLY PARALLELISE THIS
     #llama_guard
     llama_guard_results = []
     for output in temp_model_results["toxicity_outputs"]:
