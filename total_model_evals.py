@@ -73,7 +73,7 @@ for model_name in MODEL_LIST:
     model, tokenizer, device = load_model(model_dir, TOKENIZER)
 
     #perplexity
-    temp_model_results['perplexity_general'] = ppl_batched(model, tokenizer, sample_minipile_text, batch_size=16)
+    temp_model_results['perplexity_general'] = ppl_batched(model, tokenizer, sample_minipile_text, batch_size=8)
 
     #generation
     # written currently based on the fact that generation is NOT Batched in the default 
