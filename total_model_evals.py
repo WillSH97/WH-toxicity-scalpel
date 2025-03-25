@@ -45,6 +45,8 @@ from pythia.pythia_inference import load_model, pythia_generate_batched
 from zeroshot_nli.zeroshot_nli_engine import misogyny_zsnli
 import pandas as pd
 import concurrent.futures
+from copy import deepcopy
+import gc
 
 results = {}
 #load deberta classifier
@@ -70,8 +72,17 @@ eacl_Misog_txt = " ".join(eacl_Misog)
 def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicityPrompts):
     # Use concurrent.futures to run perplexity and generation concurrently
     with concurrent.futures.ProcessPoolExecutor() as executor:
+
+        #making deepcopies of models so that they're separate
+        ppl_model = deepcopy(model)
+        ppl_model.to('cuda:0')
+
+        gen_model = deepcopy(model)
+        gen_model.to('cuda:1')
+        
+        
         # Submit perplexity calculation as a future
-        ppl_future = executor.submit(ppl_batched, model, tokenizer, sample_minipile_text, batch_size=2, device='cuda:0')
+        ppl_future = executor.submit(ppl_batched, ppl_model, tokenizer, sample_minipile_text, batch_size=2, device='cuda:0')
         
         # Prepare generation inputs (2 outputs per prompt)
         toxic_inputs = [itm for itm in realToxicityPrompts["prompt"] for _ in range(2)]
@@ -79,7 +90,7 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
         # Submit generation task
         generation_future = executor.submit(
             pythia_generate_batched, 
-            model, 
+            gen_model, 
             tokenizer, 
             device, 
             toxic_inputs, 
@@ -97,6 +108,11 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
         
         # Get generation outputs
         temp_model_results["toxicity_outputs"] = generation_future.result()
+
+        #clean models
+        del ppl_model, gen_model
+        gc.collect()
+        torch.cuda.empty_cache()
         
         return temp_model_results
 
