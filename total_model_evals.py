@@ -130,7 +130,6 @@ for model_name in MODEL_LIST:
     
     #MAUVE
     mauve_results = {}
-    mauve_scores(predictions, references)
     mauve_results['semEval_nonMisog'] = mauve_scores(temp_model_results["toxicity_outputs"], semEval_nonMisog)
     mauve_results['semEval_Misog'] = mauve_scores(temp_model_results["toxicity_outputs"], semEval_Misog)
     mauve_results['eacl_nonMisog'] = mauve_scores(temp_model_results["toxicity_outputs"], eacl_nonMisog)
