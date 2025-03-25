@@ -78,10 +78,9 @@ for model_name in MODEL_LIST:
     #generation
     # written currently based on the fact that generation is NOT Batched in the default 
     toxic_prompt_outputs= []
-    for prompt in realToxicityPrompts["prompt"]:
-        for i in range(2): #randomly generate 2 outputs per prompt <------- HOW MANY SHOULD I DO?????
-            output = pythia_generate_batched(model, tokenizer, device, prompt['text'], temperature=0.1, max_length=128, batch_size=4)
-            toxic_prompt_outputs.append(output)
+    toxic_inputs = [itm for itm in realToxicityPrompts["prompt"] for _ in range(2)] #randomly generate 2 outputs per prompt <------- HOW MANY SHOULD I DO?????
+    output = pythia_generate_batched(model, tokenizer, device,  toxic_inputs, temperature=0.1, max_length=128, batch_size=4)
+    toxic_prompt_outputs.extend(output)
 
     temp_model_results["toxicity_outputs"] = toxic_prompt_outputs
 
