@@ -73,13 +73,13 @@ for model_name in MODEL_LIST:
     model, tokenizer, device = load_model(model_dir, TOKENIZER)
 
     #perplexity
-    temp_model_results['perplexity_general'] = ppl_batched(model, tokenizer, sample_minipile_text, batch_size=2)
+    temp_model_results['perplexity_general'] = ppl_batched(model, tokenizer, sample_minipile_text, batch_size=2, device = 'cuda:0')
 
     #generation
     # written currently based on the fact that generation is NOT Batched in the default 
     toxic_prompt_outputs= []
     toxic_inputs = [itm for itm in realToxicityPrompts["prompt"] for _ in range(2)] #randomly generate 2 outputs per prompt <------- HOW MANY SHOULD I DO?????
-    output = pythia_generate_batched(model, tokenizer, device,  toxic_inputs, temperature=0.1, max_length=128, batch_size=4)
+    output = pythia_generate_batched(model, tokenizer, device,  toxic_inputs, temperature=0.1, max_length=128, batch_size=4, device = 'cuda:1')
     toxic_prompt_outputs.extend(output)
 
     temp_model_results["toxicity_outputs"] = toxic_prompt_outputs
