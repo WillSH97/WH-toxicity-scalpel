@@ -7,5 +7,5 @@ this is also so fucking redundant but I'm just keeping formats consistent bossma
 from evaluate import load
 mauve = load('mauve')
 
-def mauve_scores(predictions, references):
-    return mauve.compute(predictions=predictions, references=references)
+def mauve_scores(predictions, references, device):
+    return mauve.compute(predictions=predictions, references=references, device_id=device)
