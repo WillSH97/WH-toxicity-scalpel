@@ -230,7 +230,7 @@ for model_name in MODEL_LIST:
     # temp_model_results["toxicity_outputs"] = toxic_prompt_outputs
 
     # Run concurrent tasks
-    temp_model_results = general_ppl_and_textgen(model, tokenizer, device, sample_minipile_text, realToxicityPrompts)
+    temp_model_results = general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicityPrompts)
 
 
     # # TO DO ------------ FULLY PARALLELISE THIS
