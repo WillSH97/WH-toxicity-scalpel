@@ -51,7 +51,7 @@ import gc
 
 results = {}
 #load deberta classifier
-deberta_model, deberta_tokenizer, deberta_device = load_deberta_finetune_model(DEBERTA_FT_PATH, device = 'cuda:4') ### CHANGE STRING HERE - GPU_5 for now
+deberta_model, deberta_tokenizer, deberta_device = load_deberta_finetune_model(DEBERTA_FT_PATH, device = 'cuda:3') ### CHANGE STRING HERE - GPU_4 for now
 
 # load llama guard model
 llamaguard_model, llamaguard_tokenizer, llamaguard_device = load_llama_guard_model('cuda:2') #placing it on GPU_3 for now
