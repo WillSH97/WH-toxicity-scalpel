@@ -83,22 +83,24 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
         #making deepcopies of models so that they're separate
         ppl_model = deepcopy(model)
         ppl_model.to('cuda:0')
+        ppl_tokenizer=deepcopy(tokenizer)
 
         gen_model = deepcopy(model)
         gen_model.to('cuda:1')
+        gen_tokenizer=deepcopy(tokenizer)
         
         
         # Submit perplexity calculation as a future
-        ppl_future = executor.submit(ppl_batched, ppl_model, tokenizer, sample_minipile_text, 2, 'cuda:0')
+        ppl_future = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, sample_minipile_text, 2, 'cuda:0')
         
         # Prepare generation inputs (2 outputs per prompt)
-        toxic_inputs = [itm for itm in realToxicityPrompts["prompt"] for _ in range(2)]
+        toxic_inputs = [str(itm) for itm in realToxicityPrompts["prompt"] for _ in range(2)]
         
         # Submit generation task
         generation_future = executor.submit(
             pythia_generate_batched, 
             gen_model, 
-            tokenizer, 
+            gen_tokenizer, 
             'cuda:1',
             toxic_inputs,
             4,
@@ -128,6 +130,7 @@ def parallel_output_analysis(model, tokenizer, temp_model_results):
         #making deepcopies of models so that they're separate
         ppl_model = deepcopy(model)
         ppl_model.to('cuda:0')
+        ppl_tokenizer = deepcopy(ppl_tokenizer)
 
         #llama_guard concurrency
         llama_guard_futures = []
@@ -154,10 +157,10 @@ def parallel_output_analysis(model, tokenizer, temp_model_results):
         
         #Perplexity
         
-        ppl_semeval_nonmisog_futures = executor.submit(ppl_batched, ppl_model, tokenizer, semEval_nonMisog_txt, 2, 'cuda:0')
-        ppl_semeval_misog_futures = executor.submit(ppl_batched, ppl_model, tokenizer, semEval_Misog_txt, 2, 'cuda:0')
-        ppl_eacl_nonmisog_futures = executor.submit(ppl_batched, ppl_model, tokenizer, eacl_nonMisog_txt, 2, 'cuda:0')
-        ppl_eacl_misog_futures = executor.submit(ppl_batched, ppl_model, tokenizer, eacl_Misog_txt, 2, 'cuda:0')
+        ppl_semeval_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_nonMisog_txt, 2, 'cuda:0')
+        ppl_semeval_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_Misog_txt, 2, 'cuda:0')
+        ppl_eacl_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_nonMisog_txt, 2, 'cuda:0')
+        ppl_eacl_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_Misog_txt, 2, 'cuda:0')
         
         #MAUVE
         
@@ -215,6 +218,7 @@ for model_name in MODEL_LIST:
     # load model
     model_dir = os.path.join(BASE_DIR, model_name)
     model, tokenizer, temp_device = load_model(model_dir, TOKENIZER)
+    tokenizer.pad_token = tokenizer.eos_token # FOR BUG
 
     # #perplexity
     # temp_model_results['perplexity_general'] = ppl_batched(model, tokenizer, sample_minipile_text, batch_size=2, device = 'cuda:0')
