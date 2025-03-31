@@ -131,7 +131,7 @@ def parallel_output_analysis(model, tokenizer, temp_model_results):
         #making deepcopies of models so that they're separate
         ppl_model = deepcopy(model)
         ppl_model.to('cuda:0')
-        ppl_tokenizer = deepcopy(ppl_tokenizer)
+        ppl_tokenizer = deepcopy(tokenizer)
 
         #llama_guard concurrency
         llama_guard_futures = []
@@ -189,19 +189,19 @@ def parallel_output_analysis(model, tokenizer, temp_model_results):
         temp_model_results["deberta_classifier"] = deberta_results
 
         perplexity_results = {
-            'semEval_nonMisog': [future.result() for future in ppl_semeval_nonmisog_futures],
-            'semEval_Misog': [future.result() for future in ppl_semeval_misog_futures],
-            'eacl_nonMisog': [future.result() for future in ppl_eacl_nonmisog_futures],
-            'eacl_Misog': [future.result() for future in ppl_eacl_misog_futures],
+            'semEval_nonMisog': ppl_semeval_nonmisog_futures.result(),
+            'semEval_Misog': ppl_semeval_misog_futures.result(),
+            'eacl_nonMisog': ppl_eacl_nonmisog_futures.result(),
+            'eacl_Misog': ppl_eacl_misog_futures.result(),
         }
     
         temp_model_results["perplexity_misog"] = perplexity_results
 
         mauve_results = {
-            'semEval_nonMisog': [future.result() for future in mauve_semeval_nonmisog_futures],
-            'semEval_Misog': [future.result() for future in mauve_semeval_misog_futures],
-            'eacl_nonMisog': [future.result() for future in mauve_eacl_nonmisog_futures],
-            'eacl_Misog': [future.result() for future in mauve_eacl_misog_futures],
+            'semEval_nonMisog': mauve_semeval_nonmisog_futures.result(),
+            'semEval_Misog': mauve_semeval_misog_futures.result(),
+            'eacl_nonMisog': mauve_eacl_nonmisog_futures.result(),
+            'eacl_Misog': mauve_eacl_misog_futures.result(),
         }
     
         temp_model_results["mauve_misog"] = mauve_results    
