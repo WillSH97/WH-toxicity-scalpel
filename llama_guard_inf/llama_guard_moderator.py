@@ -19,7 +19,7 @@ def load_llama_guard_model(device):
                                                  device_map=device)
     return model, tokenizer, device
 
-def moderate(input_str: str, tokenizer, model, device):
+def moderate(input_str: str, model, tokenizer, device):
     chat = [{"role": "user", "content": input_str},]
     input_ids = tokenizer.apply_chat_template(chat, return_tensors="pt").to(device)
     output = model.generate(input_ids=input_ids, max_new_tokens=100, pad_token_id=0)
