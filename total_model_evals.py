@@ -78,7 +78,7 @@ eacl_Misog_txt = " ".join(eacl_Misog)
 #define multiprocess batch 1
 def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicityPrompts):
     # Use concurrent.futures to run perplexity and generation concurrently
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor() as executor:
 
         #making deepcopies of models so that they're separate
         ppl_model = deepcopy(model)
@@ -124,7 +124,7 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
 
 def parallel_output_analysis(model, tokenizer, temp_model_results):
     # Use concurrent.futures to run perplexity and generation concurrently
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor() as executor:
         #making deepcopies of models so that they're separate
         ppl_model = deepcopy(model)
         ppl_model.to('cuda:0')
