@@ -99,11 +99,11 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
             pythia_generate_batched, 
             gen_model, 
             tokenizer, 
-            device='cuda:1'
-            toxic_inputs, 
-            temperature=0.1, 
-            max_length=128, 
-            batch_size=4, 
+            'cuda:1',
+            toxic_inputs,
+            4,
+            0.1, 
+            128,  
         )
         
         # Wait for and collect results
