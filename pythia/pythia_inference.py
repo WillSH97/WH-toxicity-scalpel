@@ -10,7 +10,8 @@ def load_model(MODEL_DIR, TOKENIZER_DIR):
     )
     
     tokenizer = AutoTokenizer.from_pretrained(
-        TOKENIZER_DIR,
+        TOKENIZER_DIR, 
+        padding_side='left',
     )
     
     device = 'cpu' # 'cuda' if torch.cuda.is_available() else <---- deleting this because I need to send this model to a bunch of devices anyway
