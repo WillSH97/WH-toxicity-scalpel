@@ -7,4 +7,4 @@ this is also so fucking redundant but I'm just keeping formats consistent bossma
 import mauve
 
 def mauve_scores(predictions, references, device):
-    return mauve.compute_mauve(p_text=predictions, q_text=references, device_id=device)['mauve']
+    return mauve.compute_mauve(p_text=predictions, q_text=references, device_id=device).mauve
