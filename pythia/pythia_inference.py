@@ -22,9 +22,10 @@ def load_model(MODEL_DIR, TOKENIZER_DIR):
 def pythia_generate(model, tokenizer, device, user_input, temperature=0.1, max_new_tokens=128):
     
     inputs = tokenizer(user_input, return_tensors="pt").to(device)
-    tokens = model.generate(**inputs, do_sample=True,
-        temperature=temperature,
-        max_new_tokens=max_new_tokens,)
+    with torch.no_grad():
+        tokens = model.generate(**inputs, do_sample=True,
+            temperature=temperature,
+            max_new_tokens=max_new_tokens,)
     output = tokenizer.decode(tokens[0], skip_special_tokens=True)
     return(output)
 
@@ -56,13 +57,14 @@ def pythia_generate_batched(model, tokenizer, device, user_inputs, batch_size=32
         batch_tokens = tokenizer(batch, padding=True, return_tensors="pt").to(device)
         
         # Generate completions
-        generated_tokens = model.generate(
-            input_ids=batch_tokens.input_ids,
-            attention_mask=batch_tokens.attention_mask,
-            do_sample=True,
-            temperature=temperature,
-            max_new_tokens=max_new_tokens,
-        )
+        with torch.no_grad():
+            generated_tokens = model.generate(
+                input_ids=batch_tokens.input_ids,
+                attention_mask=batch_tokens.attention_mask,
+                do_sample=True,
+                temperature=temperature,
+                max_new_tokens=max_new_tokens,
+            )
         
         # Decode the generated tokens
         batch_outputs = [

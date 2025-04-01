@@ -84,10 +84,12 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
         #making deepcopies of models so that they're separate
         ppl_model = deepcopy(model)
         ppl_model.to('cuda:0')
+        ppl_model.eval()
         ppl_tokenizer=deepcopy(tokenizer)
 
         gen_model = deepcopy(model)
         gen_model.to('cuda:1')
+        gen_model.eval()
         gen_tokenizer=deepcopy(tokenizer)
         
         
@@ -120,10 +122,14 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
 
         #clean models
         ppl_model.to('cpu')
+        del ppl_model
         gen_model.to('cpu')
-        del ppl_model, gen_model
+        del gen_model
         gc.collect()
         torch.cuda.empty_cache()
+
+        #FOR DEBUG
+        print(torch.cuda.memory_summary())
         
         return temp_model_results
 
