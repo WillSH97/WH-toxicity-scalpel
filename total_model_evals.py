@@ -139,6 +139,7 @@ def parallel_output_analysis(model, tokenizer, temp_model_results):
         #making deepcopies of models so that they're separate
         ppl_model = deepcopy(model)
         ppl_model.to('cuda:0')
+        ppl_model.eval()
         ppl_tokenizer = deepcopy(tokenizer)
 
         #llama_guard concurrency
@@ -163,21 +164,25 @@ def parallel_output_analysis(model, tokenizer, temp_model_results):
 
         #deberta classifier
         deberta_future = executor.submit(deberta_classify, deberta_model, deberta_tokenizer, deberta_device, temp_model_results["toxicity_outputs"]) # inherently batched - can change batch_size param here if reqd.
-        
-        #Perplexity
-        
-        ppl_semeval_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_nonMisog_txt, 1, 'cuda:0')
-        ppl_semeval_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_Misog_txt, 1, 'cuda:0')
-        ppl_eacl_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_nonMisog_txt, 1, 'cuda:0')
-        ppl_eacl_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_Misog_txt, 1, 'cuda:0')
-        
-        #MAUVE
-        
 
+        #MAUVE
         mauve_semeval_nonmisog_futures = executor.submit(mauve_scores, temp_model_results["toxicity_outputs"], semEval_nonMisog, 1)
         mauve_semeval_misog_futures = executor.submit(mauve_scores, temp_model_results["toxicity_outputs"], semEval_Misog, 1)
         mauve_eacl_nonmisog_futures = executor.submit(mauve_scores, temp_model_results["toxicity_outputs"], eacl_nonMisog, 1)
         mauve_eacl_misog_futures = executor.submit(mauve_scores, temp_model_results["toxicity_outputs"], eacl_Misog, 1)
+
+        
+        #Perplexity
+        
+        ppl_semeval_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_nonMisog_txt, 1, 'cuda:0')
+        ppl_semeval_nonmisog_results = ppl_semeval_nonmisog_futures.result() # clearing GPU vram here?
+        ppl_semeval_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_Misog_txt, 1, 'cuda:0')
+        ppl_semeval_misog_results = ppl_semeval_misog_futures.result() # clearing GPU vram here?
+        ppl_eacl_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_nonMisog_txt, 1, 'cuda:0')
+        ppl_eacl_nonmisog_results = ppl_eacl_nonmisog_futures.result() # clearing GPU vram here?
+        ppl_eacl_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_Misog_txt, 1, 'cuda:0')
+        ppl_eacl_misog_results = ppl_eacl_misog_futures.result() # clearing GPU vram here?
+        
 
 
         # gather all results:
@@ -197,10 +202,10 @@ def parallel_output_analysis(model, tokenizer, temp_model_results):
         temp_model_results["deberta_classifier"] = deberta_results
 
         perplexity_results = {
-            'semEval_nonMisog': ppl_semeval_nonmisog_futures.result(),
-            'semEval_Misog': ppl_semeval_misog_futures.result(),
-            'eacl_nonMisog': ppl_eacl_nonmisog_futures.result(),
-            'eacl_Misog': ppl_eacl_misog_futures.result(),
+            'semEval_nonMisog': ppl_semeval_nonmisog_results,
+            'semEval_Misog': ppl_semeval_misog_results,
+            'eacl_nonMisog': ppl_eacl_nonmisog_results,
+            'eacl_Misog': ppl_eacl_misog_results,
         }
     
         temp_model_results["perplexity_misog"] = perplexity_results

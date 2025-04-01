@@ -16,7 +16,7 @@ import numpy as np
 
 def ppl(model, tokenizer, candidate_str: str, device = 'cuda'):
     model.to(device)
-    
+    model.eval()
     encodings = tokenizer(candidate_str, return_tensors="pt")
     
     max_length = model.config.max_position_embeddings #max context length
