@@ -66,9 +66,9 @@ realToxicityPrompts = pd.read_json(path_or_buf='exp_datasets/RealToxicityPrompts
 semEval = pd.read_csv('exp_datasets/semeval/semeval_2023_processed.csv')
 eacl_guest_dataset = pd.read_csv('exp_datasets/eacl_guest/eacl_guest_preprocessed.csv')
 # data prep
-semEval_nonMisog = [semEval['datapoint'][i] for i in range(len(semEval)) if semEval['misogynistic_label'][i]=='not sexist']
+semEval_nonMisog = [str(semEval['datapoint'][i]) for i in range(len(semEval)) if semEval['misogynistic_label'][i]=='not sexist']
 semEval_nonMisog_txt = " ".join(semEval_nonMisog)
-semEval_Misog = [semEval['datapoint'][i] for i in range(len(semEval)) if semEval['misogynistic_label'][i]=='sexist']
+semEval_Misog = [str(semEval['datapoint'][i]) for i in range(len(semEval)) if semEval['misogynistic_label'][i]=='sexist']
 semEval_Misog_txt = " ".join(semEval_Misog)
 
 eacl_nonMisog = [str(eacl_guest_dataset['datapoint'][i]) for i in range(len(eacl_guest_dataset)) if eacl_guest_dataset['misogynistic_label'][i]==0]
@@ -94,10 +94,10 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
         
         
         # Submit perplexity calculation as a future
-        ppl_future = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, sample_minipile_text, 1, 'cuda:0')
+        ppl_future = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, str(sample_minipile_text[:1]), 1, 'cuda:0')
         
         # Prepare generation inputs (2 outputs per prompt)
-        toxic_inputs = [str(itm) for itm in realToxicityPrompts["prompt"] for _ in range(2)]
+        toxic_inputs = [str(itm) for itm in realToxicityPrompts["prompt"] for _ in range(2)][:1]
         
         # Submit generation task
         generation_future = executor.submit(
@@ -105,7 +105,7 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
             gen_model, 
             gen_tokenizer, 
             'cuda:1',
-            toxic_inputs,
+            list(toxic_inputs),
             4,
             0.1, 
             128,  
@@ -166,22 +166,22 @@ def parallel_output_analysis(model, tokenizer, temp_model_results):
         deberta_future = executor.submit(deberta_classify, deberta_model, deberta_tokenizer, deberta_device, temp_model_results["toxicity_outputs"]) # inherently batched - can change batch_size param here if reqd.
 
         #MAUVE
-        mauve_semeval_nonmisog_futures = executor.submit(mauve_scores, temp_model_results["toxicity_outputs"], semEval_nonMisog, 1)
-        mauve_semeval_misog_futures = executor.submit(mauve_scores, temp_model_results["toxicity_outputs"], semEval_Misog, 1)
-        mauve_eacl_nonmisog_futures = executor.submit(mauve_scores, temp_model_results["toxicity_outputs"], eacl_nonMisog, 1)
-        mauve_eacl_misog_futures = executor.submit(mauve_scores, temp_model_results["toxicity_outputs"], eacl_Misog, 1)
+        mauve_semeval_nonmisog_futures = executor.submit(mauve_scores, list(temp_model_results["toxicity_outputs"]), semEval_nonMisog, 1)
+        mauve_semeval_misog_futures = executor.submit(mauve_scores, list(temp_model_results["toxicity_outputs"]), semEval_Misog, 1)
+        mauve_eacl_nonmisog_futures = executor.submit(mauve_scores, list(temp_model_results["toxicity_outputs"]), eacl_nonMisog, 1)
+        mauve_eacl_misog_futures = executor.submit(mauve_scores, list(temp_model_results["toxicity_outputs"]), eacl_Misog, 1)
 
         
         #Perplexity
         
-        ppl_semeval_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_nonMisog_txt, 1, 'cuda:0')
-        ppl_semeval_nonmisog_results = ppl_semeval_nonmisog_futures.result() # clearing GPU vram here?
-        ppl_semeval_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_Misog_txt, 1, 'cuda:0')
-        ppl_semeval_misog_results = ppl_semeval_misog_futures.result() # clearing GPU vram here?
-        ppl_eacl_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_nonMisog_txt, 1, 'cuda:0')
-        ppl_eacl_nonmisog_results = ppl_eacl_nonmisog_futures.result() # clearing GPU vram here?
-        ppl_eacl_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_Misog_txt, 1, 'cuda:0')
-        ppl_eacl_misog_results = ppl_eacl_misog_futures.result() # clearing GPU vram here?
+        # ppl_semeval_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_nonMisog_txt, 1, 'cuda:0')
+        # ppl_semeval_nonmisog_results = ppl_semeval_nonmisog_futures.result() # clearing GPU vram here?
+        # ppl_semeval_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_Misog_txt, 1, 'cuda:0')
+        # ppl_semeval_misog_results = ppl_semeval_misog_futures.result() # clearing GPU vram here?
+        # ppl_eacl_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_nonMisog_txt, 1, 'cuda:0')
+        # ppl_eacl_nonmisog_results = ppl_eacl_nonmisog_futures.result() # clearing GPU vram here?
+        # ppl_eacl_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_Misog_txt, 1, 'cuda:0')
+        # ppl_eacl_misog_results = ppl_eacl_misog_futures.result() # clearing GPU vram here?
         
 
 
@@ -201,14 +201,14 @@ def parallel_output_analysis(model, tokenizer, temp_model_results):
         deberta_results = deberta_future.result()
         temp_model_results["deberta_classifier"] = deberta_results
 
-        perplexity_results = {
-            'semEval_nonMisog': ppl_semeval_nonmisog_results,
-            'semEval_Misog': ppl_semeval_misog_results,
-            'eacl_nonMisog': ppl_eacl_nonmisog_results,
-            'eacl_Misog': ppl_eacl_misog_results,
-        }
+        # perplexity_results = {
+        #     'semEval_nonMisog': ppl_semeval_nonmisog_results,
+        #     'semEval_Misog': ppl_semeval_misog_results,
+        #     'eacl_nonMisog': ppl_eacl_nonmisog_results,
+        #     'eacl_Misog': ppl_eacl_misog_results,
+        # }
     
-        temp_model_results["perplexity_misog"] = perplexity_results
+        # temp_model_results["perplexity_misog"] = perplexity_results
 
         mauve_results = {
             'semEval_nonMisog': mauve_semeval_nonmisog_futures.result(),
