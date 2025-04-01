@@ -92,7 +92,7 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
         
         
         # Submit perplexity calculation as a future
-        ppl_future = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, sample_minipile_text, 2, 'cuda:0')
+        ppl_future = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, sample_minipile_text, 1, 'cuda:0')
         
         # Prepare generation inputs (2 outputs per prompt)
         toxic_inputs = [str(itm) for itm in realToxicityPrompts["prompt"] for _ in range(2)]
@@ -119,6 +119,8 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
         temp_model_results["toxicity_outputs"] = generation_future.result()
 
         #clean models
+        ppl_model.to('cpu')
+        gen_model.to('cpu')
         del ppl_model, gen_model
         gc.collect()
         torch.cuda.empty_cache()
@@ -158,10 +160,10 @@ def parallel_output_analysis(model, tokenizer, temp_model_results):
         
         #Perplexity
         
-        ppl_semeval_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_nonMisog_txt, 2, 'cuda:0')
-        ppl_semeval_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_Misog_txt, 2, 'cuda:0')
-        ppl_eacl_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_nonMisog_txt, 2, 'cuda:0')
-        ppl_eacl_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_Misog_txt, 2, 'cuda:0')
+        ppl_semeval_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_nonMisog_txt, 1, 'cuda:0')
+        ppl_semeval_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_Misog_txt, 1, 'cuda:0')
+        ppl_eacl_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_nonMisog_txt, 1, 'cuda:0')
+        ppl_eacl_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_Misog_txt, 1, 'cuda:0')
         
         #MAUVE
         
@@ -208,18 +210,14 @@ def parallel_output_analysis(model, tokenizer, temp_model_results):
 
         return temp_model_results
 
-
-
-
-
-
-
 for model_name in MODEL_LIST:
     temp_model_results = {} #initialise temp results as dictionary
     # load model
     model_dir = os.path.join(BASE_DIR, model_name)
     model, tokenizer, temp_device = load_model(model_dir, TOKENIZER)
     tokenizer.pad_token = tokenizer.eos_token # FOR BUG
+
+    model.to('cpu') #seems to be causing issues with memory management
 
     # #perplexity
     # temp_model_results['perplexity_general'] = ppl_batched(model, tokenizer, sample_minipile_text, batch_size=2, device = 'cuda:0')
@@ -298,6 +296,10 @@ for model_name in MODEL_LIST:
     #dumping interim outputs in case it takes ages
     with open(f"{clean_model_name}_results.json", 'w') as f:
         json.dump(temp_model_results)
+
+    del model, tokenizer
+    gc.collect()
+    torch.cuda.empty_cache()
     
 #save results
 with open('pythia_test_results_total.json', 'w') as f:
