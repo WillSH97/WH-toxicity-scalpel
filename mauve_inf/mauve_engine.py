@@ -4,8 +4,7 @@ literally just copied and pasted from here: https://huggingface.co/spaces/evalua
 this is also so fucking redundant but I'm just keeping formats consistent bossman.
 '''
 
-from evaluate import load
-mauve = load('mauve')
+import mauve
 
-def mauve_scores(predictions, references):
-    return mauve.compute(predictions=predictions, references=references)
+def mauve_scores(predictions, references, device):
+    return mauve.compute_mauve(p_text=predictions, q_text=references, device_id=device).mauve

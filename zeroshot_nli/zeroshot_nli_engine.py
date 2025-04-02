@@ -3,10 +3,13 @@ again pretty arbitrary, but it'll help us keep code clean? idk
 '''
 
 from transformers import pipeline
-classifier = pipeline("zero-shot-classification",
-                      model="cross-encoder/nli-deberta-v3-base")
+def load_ZSNLI_classifier(device: str):
+    classifier = pipeline("zero-shot-classification",
+                          model="cross-encoder/nli-deberta-v3-base",
+                         device=device)
+    return classifier
 
-def misogyny_zsnli(input_str):
+def misogyny_zsnli(classifier, input_str):
     '''
     classifies stirngs as misogynistic or otherwise
     '''

@@ -7,7 +7,7 @@ import numpy as np
 
 from torch.nn import Softmax
 
-def load_deberta_finetune_model(dir_string: str):
+def load_deberta_finetune_model(dir_string: str, device: str):
     model_name = 'microsoft/deberta-v3-base'
     
     MODEL_WEIGHT_PATH=dir_string #replace with finetune model weight path
@@ -16,7 +16,7 @@ def load_deberta_finetune_model(dir_string: str):
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSequenceClassification.from_pretrained(model_name)
     
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     model.load_state_dict(torch.load(MODEL_WEIGHT_PATH, weights_only=True))
     

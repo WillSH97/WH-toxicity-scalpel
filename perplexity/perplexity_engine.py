@@ -12,10 +12,11 @@ import torch
 from tqdm import tqdm
 import numpy as np
 
-device = 'cuda' if torch.cuda.is_available else 'cpu'
+# device = 'cuda' if torch.cuda.is_available else 'cpu'
 
-def ppl(model, tokenizer, candidate_str: str):
-    
+def ppl(model, tokenizer, candidate_str: str, device = 'cuda'):
+    model.to(device)
+    model.eval()
     encodings = tokenizer(candidate_str, return_tensors="pt")
     
     max_length = model.config.max_position_embeddings #max context length
@@ -55,7 +56,7 @@ def ppl(model, tokenizer, candidate_str: str):
     ppl = torch.exp(avg_nll)
     return ppl
 
-def ppl_from_dir(model_dir: str, candidate_str: str, quantize = False):
+def ppl_from_dir(model_dir: str, candidate_str: str, quantize = False, device = 'cuda'):
     model = GPTNeoXForCausalLM.from_pretrained(
     model_dir, ## NOTE: use whatever model path here
     device_map = device,
@@ -64,11 +65,11 @@ def ppl_from_dir(model_dir: str, candidate_str: str, quantize = False):
     tokenizer = AutoTokenizer.from_pretrained(
     model_dir, ## NOTE: use whatever model path here
 )
-    return ppl(model, tokenizer, candidate_str)
+    return ppl(model, tokenizer, candidate_str, device=device)
 
 ### CLAUDE UNTESTED
 
-def ppl_batched(model, tokenizer, candidate_str: str, batch_size=32):
+def ppl_batched(model, tokenizer, candidate_str: str, batch_size=32, device = 'cuda'):
     """
     Calculate perplexity for a text string, batching compatible forward passes for efficiency.
     
@@ -81,7 +82,7 @@ def ppl_batched(model, tokenizer, candidate_str: str, batch_size=32):
     Returns:
         Perplexity score for the input string
     """
-    device = next(model.parameters()).device
+    model.to(device)
     encodings = tokenizer(candidate_str, return_tensors="pt")
     
     max_length = model.config.max_position_embeddings
@@ -149,7 +150,7 @@ def ppl_batched(model, tokenizer, candidate_str: str, batch_size=32):
         # Handle edge case of very short text
         return float('inf')
 
-def ppl_from_dir_batched(model_dir: str, candidate_str: str, batch_size=32, quantize=False):
+def ppl_from_dir_batched(model_dir: str, candidate_str: str, batch_size=32, quantize=False, device = 'cuda'):
     """
     Load model and calculate perplexity with batched forward passes.
     
@@ -162,7 +163,6 @@ def ppl_from_dir_batched(model_dir: str, candidate_str: str, batch_size=32, quan
     Returns:
         Perplexity score
     """
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
     model = GPTNeoXForCausalLM.from_pretrained(
         model_dir,
@@ -172,4 +172,4 @@ def ppl_from_dir_batched(model_dir: str, candidate_str: str, batch_size=32, quan
     
     tokenizer = AutoTokenizer.from_pretrained(model_dir)
     
-    return ppl_batched(model, tokenizer, candidate_str, batch_size)
+    return ppl_batched(model, tokenizer, candidate_str, batch_size, device=device)
