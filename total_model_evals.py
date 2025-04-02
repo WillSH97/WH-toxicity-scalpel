@@ -22,11 +22,13 @@ then on the outputs:
 from dotenv import load_dotenv
 import json
 import os
+import argparse
+
 load_dotenv()
 
 HF_TOKEN = os.getenv('HF_TOKEN')
 BASE_DIR = os.getenv('BASE_DIR')
-MODEL_LIST = json.loads(os.getenv('MODEL_LIST'))
+# MODEL_LIST = json.loads(os.getenv('MODEL_LIST'))
 TOKENIZER = os.getenv('TOKENIZER')
 DEBERTA_FT_PATH = os.getenv('DEBERTA_FT_PATH')
 
@@ -227,7 +229,7 @@ def parallel_output_analysis(model, tokenizer, temp_model_results):
 
         return temp_model_results
 
-for model_name in MODEL_LIST:
+def main(model_name):
     temp_model_results = {} #initialise temp results as dictionary
     # load model
     model_dir = os.path.join(BASE_DIR, model_name)
@@ -252,7 +254,12 @@ for model_name in MODEL_LIST:
     del model, tokenizer
     gc.collect()
     torch.cuda.empty_cache()
-    
-#save results
-with open('pythia_test_results_total.json', 'w') as f:
-    json.dump(results, f)
+
+if __name__=='__main__':
+    parser = argparse.ArgumentParser
+    parser.add_argument("-m", "--modeldir", help="model dir to run model from", type=str)
+    args = parser.parse_args()
+    main(args.modeldir)
+# #save results
+# with open('pythia_test_results_total.json', 'w') as f:
+#     json.dump(results, f)
