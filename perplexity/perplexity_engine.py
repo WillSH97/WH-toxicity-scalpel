@@ -83,6 +83,7 @@ def ppl_batched(model, tokenizer, candidate_str: str, batch_size=32, device = 'c
         Perplexity score for the input string
     """
     model.to(device)
+    model.eval()
     encodings = tokenizer(candidate_str, return_tensors="pt")
     
     max_length = model.config.max_position_embeddings

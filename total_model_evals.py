@@ -94,10 +94,10 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
         
         
         # Submit perplexity calculation as a future
-        ppl_future = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, str(sample_minipile_text[:1]), 1, 'cuda:0')
+        ppl_future = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, str(sample_minipile_text), 1, 'cuda:0')
         
         # Prepare generation inputs (2 outputs per prompt)
-        toxic_inputs = [str(itm) for itm in realToxicityPrompts["prompt"] for _ in range(2)][:1]
+        toxic_inputs = [str(itm) for itm in realToxicityPrompts["prompt"] for _ in range(3)]
         
         # Submit generation task
         generation_future = executor.submit(
@@ -106,7 +106,7 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
             gen_tokenizer, 
             'cuda:1',
             list(toxic_inputs),
-            4,
+            8,
             0.1, 
             128,  
         )
@@ -174,14 +174,14 @@ def parallel_output_analysis(model, tokenizer, temp_model_results):
         
         #Perplexity
         
-        # ppl_semeval_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_nonMisog_txt, 1, 'cuda:0')
-        # ppl_semeval_nonmisog_results = ppl_semeval_nonmisog_futures.result() # clearing GPU vram here?
-        # ppl_semeval_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_Misog_txt, 1, 'cuda:0')
-        # ppl_semeval_misog_results = ppl_semeval_misog_futures.result() # clearing GPU vram here?
-        # ppl_eacl_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_nonMisog_txt, 1, 'cuda:0')
-        # ppl_eacl_nonmisog_results = ppl_eacl_nonmisog_futures.result() # clearing GPU vram here?
-        # ppl_eacl_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_Misog_txt, 1, 'cuda:0')
-        # ppl_eacl_misog_results = ppl_eacl_misog_futures.result() # clearing GPU vram here?
+        ppl_semeval_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_nonMisog_txt, 1, 'cuda:0')
+        ppl_semeval_nonmisog_results = ppl_semeval_nonmisog_futures.result() # clearing GPU vram here?
+        ppl_semeval_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_Misog_txt, 1, 'cuda:0')
+        ppl_semeval_misog_results = ppl_semeval_misog_futures.result() # clearing GPU vram here?
+        ppl_eacl_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_nonMisog_txt, 1, 'cuda:0')
+        ppl_eacl_nonmisog_results = ppl_eacl_nonmisog_futures.result() # clearing GPU vram here?
+        ppl_eacl_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_Misog_txt, 1, 'cuda:0')
+        ppl_eacl_misog_results = ppl_eacl_misog_futures.result() # clearing GPU vram here?
         
 
 
@@ -202,13 +202,13 @@ def parallel_output_analysis(model, tokenizer, temp_model_results):
         temp_model_results["deberta_classifier"] = deberta_results
 
         # perplexity_results = {
-        #     'semEval_nonMisog': ppl_semeval_nonmisog_results,
-        #     'semEval_Misog': ppl_semeval_misog_results,
-        #     'eacl_nonMisog': ppl_eacl_nonmisog_results,
-        #     'eacl_Misog': ppl_eacl_misog_results,
-        # }
+            'semEval_nonMisog': ppl_semeval_nonmisog_results,
+            'semEval_Misog': ppl_semeval_misog_results,
+            'eacl_nonMisog': ppl_eacl_nonmisog_results,
+            'eacl_Misog': ppl_eacl_misog_results,
+        }
     
-        # temp_model_results["perplexity_misog"] = perplexity_results
+        temp_model_results["perplexity_misog"] = perplexity_results
 
         mauve_results = {
             'semEval_nonMisog': mauve_semeval_nonmisog_futures.result(),
@@ -236,73 +236,8 @@ for model_name in MODEL_LIST:
 
     model.to('cpu') #seems to be causing issues with memory management
 
-    # #perplexity
-    # temp_model_results['perplexity_general'] = ppl_batched(model, tokenizer, sample_minipile_text, batch_size=2, device = 'cuda:0')
-
-    # #generation
-    # # written currently based on the fact that generation is NOT Batched in the default 
-    # toxic_prompt_outputs= []
-    # toxic_inputs = [itm for itm in realToxicityPrompts["prompt"] for _ in range(2)] #randomly generate 2 outputs per prompt <------- HOW MANY SHOULD I DO?????
-    # output = pythia_generate_batched(model, tokenizer, device,  toxic_inputs, temperature=0.1, max_length=128, batch_size=4, device = 'cuda:1')
-    # toxic_prompt_outputs.extend(output)
-
-    # temp_model_results["toxicity_outputs"] = toxic_prompt_outputs
-
     # Run concurrent tasks
     temp_model_results = general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicityPrompts)
-
-
-    # # TO DO ------------ FULLY PARALLELISE THIS
-    # #llama_guard
-    # llama_guard_results = []
-    # for output in temp_model_results["toxicity_outputs"]:
-    #     result = llamaguard_moderate(output)
-    #     llama_guard_results.append(result)
-
-    # temp_model_results["llama_guard"] = llama_guard_results
-
-    # #detoxify
-    # detoxify_results = []
-    # for output in temp_model_results["toxicity_outputs"]:
-    #     result = detoxify_classify(output)
-    #     detoxify_results.append(result)
-
-    # temp_model_results["detoxify"] = detoxify_results
-
-    # #farrell lexicon
-    # farrell_results = []
-    # for output in temp_model_results["toxicity_outputs"]:
-    #     result = farrell_lexicon(output)
-    #     farrell_results.append(result)
-
-    # temp_model_results["farrell"] = farrell_results
-
-    # #ZSNLI
-    # ZSNLI_results = []
-    # for output in temp_model_results["toxicity_outputs"]:
-    #     result = misogyny_zsnli(output)
-    #     farrell_results.append(result)
-
-    # temp_model_results["ZSNLI"] = ZSNLI_results
-
-    # #deberta classifier
-    # deberta_results = deberta_classify(deberta_model, deberta_tokenizer, deberta_device, temp_model_results["toxicity_outputs"]) # inherently batched - can change batch_size param here if reqd.
-
-    # #Perplexity
-    # perplexity_results = {}
-    # perplexity_results['semEval_nonMisog'] = ppl_batched(model, tokenizer, semEval_nonMisog_txt, batch_size=2, device='cuda:0')
-    # perplexity_results['semEval_Misog'] = ppl_batched(model, tokenizer, semEval_Misog_txt, batch_size=2, device='cuda:0')
-    # perplexity_results['eacl_nonMisog'] = ppl_batched(model, tokenizer, eacl_nonMisog_txt, batch_size=2, device='cuda:0')
-    # perplexity_results['eacl_Misog'] = ppl_batched(model, tokenizer, eacl_Misog_txt, batch_size=2, device='cuda:0')
-
-    # temp_model_results["perplexity_misog"] = perplexity_results
-    
-    # #MAUVE
-    # mauve_results = {}
-    # mauve_results['semEval_nonMisog'] = mauve_scores(temp_model_results["toxicity_outputs"], semEval_nonMisog, 1) #on GPU 2 for now
-    # mauve_results['semEval_Misog'] = mauve_scores(temp_model_results["toxicity_outputs"], semEval_Misog, 1) #on GPU 2 for now
-    # mauve_results['eacl_nonMisog'] = mauve_scores(temp_model_results["toxicity_outputs"], eacl_nonMisog, 1) #on GPU 2 for now
-    # mauve_results['eacl_Misog'] = mauve_scores(temp_model_results["toxicity_outputs"], eacl_Misog, 1) # on GPU 2 for now
 
     # temp_model_results["mauve_misog"] = mauve_results    
     temp_model_results = parallel_output_analysis(model, tokenizer, temp_model_results)    
