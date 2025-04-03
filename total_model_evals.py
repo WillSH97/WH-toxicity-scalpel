@@ -203,7 +203,7 @@ def parallel_output_analysis(model, tokenizer, temp_model_results):
         deberta_results = deberta_future.result()
         temp_model_results["deberta_classifier"] = deberta_results
 
-        # perplexity_results = {
+        perplexity_results = {
             'semEval_nonMisog': ppl_semeval_nonmisog_results,
             'semEval_Misog': ppl_semeval_misog_results,
             'eacl_nonMisog': ppl_eacl_nonmisog_results,
