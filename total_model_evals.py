@@ -256,7 +256,7 @@ def main(model_name):
     torch.cuda.empty_cache()
 
 if __name__=='__main__':
-    parser = argparse.ArgumentParser
+    parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--modeldir", help="model dir to run model from", type=str)
     args = parser.parse_args()
     main(args.modeldir)
