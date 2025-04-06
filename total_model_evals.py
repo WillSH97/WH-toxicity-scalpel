@@ -164,8 +164,12 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
         #clean models
         ppl_model.to('cpu')
         del ppl_model
-        gen_model.to('cpu')
-        del gen_model
+        gen_model1.to('cpu')
+        del gen_model1
+        gen_model2.to('cpu')
+        del gen_model2
+        gen_model3.to('cpu')
+        del gen_model3
         gc.collect()
         torch.cuda.empty_cache()
 
