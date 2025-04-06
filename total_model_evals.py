@@ -89,24 +89,55 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
         ppl_model.eval()
         ppl_tokenizer=deepcopy(tokenizer)
 
-        gen_model = deepcopy(model)
-        gen_model.to('cuda:1')
-        gen_model.eval()
-        gen_tokenizer=deepcopy(tokenizer)
+        gen_model1 = deepcopy(model)
+        gen_model1.to('cuda:1')
+        gen_model1.eval()
+        gen_tokenizer1=deepcopy(tokenizer)
+
+        gen_model2 = deepcopy(model)
+        gen_model2.to('cuda:2')
+        gen_model2.eval()
+        gen_tokenizer2=deepcopy(tokenizer)
+
+        gen_model3 = deepcopy(model)
+        gen_model3.to('cuda:3')
+        gen_model3.eval()
+        gen_tokenizer3=deepcopy(tokenizer)
+        
         
         
         # Submit perplexity calculation as a future
         ppl_future = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, str(sample_minipile_text), 1, 'cuda:0')
         
         # Prepare generation inputs (2 outputs per prompt)
-        toxic_inputs = [str(itm) for itm in realToxicityPrompts["prompt"] for _ in range(3)]
+        toxic_inputs = [str(itm) for itm in realToxicityPrompts["prompt"]]
         
-        # Submit generation task
-        generation_future = executor.submit(
+        # Submit generation tasks - it's ugly but I don't want to try something smart in prod and then realise it doesn't work after 24h
+        generation_future1 = executor.submit(
             pythia_generate_batched, 
-            gen_model, 
-            gen_tokenizer, 
+            gen_model1, 
+            gen_tokenizer1, 
             'cuda:1',
+            list(toxic_inputs),
+            8,
+            0.1, 
+            128,  
+        )
+        generation_future2 = executor.submit(
+            pythia_generate_batched, 
+            gen_model2, 
+            gen_tokenizer2, 
+            'cuda:2',
+            list(toxic_inputs),
+            8,
+            0.1, 
+            128,  
+        )
+        generation_future3 = executor.submit(
+            pythia_generate_batched, 
+            gen_model3, 
+            gen_tokenizer3, 
+            'cuda:3',
             list(toxic_inputs),
             8,
             0.1, 
@@ -119,8 +150,16 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
         # Get perplexity result
         temp_model_results['perplexity_general'] = ppl_future.result()
         
-        # Get generation outputs
-        temp_model_results["toxicity_outputs"] = generation_future.result()
+        # Get generation outputs - it's ugly but I don't want to try something smart in prod and then realise it doesn't work after 24h
+        total_generation_results = []
+        generation_results1 = generation_future1.result()
+        generation_results2 = generation_future2.result()
+        generation_results_3 = generation_future3.result()
+        total_generation_results.extend(generation_results1)
+        total_generation_results.extend(generation_results2)
+        total_generation_results.extend(generation_results3)
+
+        temp_model_results["toxicity_outputs"] = total_generation_results
 
         #clean models
         ppl_model.to('cpu')
