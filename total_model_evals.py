@@ -154,7 +154,7 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
         total_generation_results = []
         generation_results1 = generation_future1.result()
         generation_results2 = generation_future2.result()
-        generation_results_3 = generation_future3.result()
+        generation_results3 = generation_future3.result()
         total_generation_results.extend(generation_results1)
         total_generation_results.extend(generation_results2)
         total_generation_results.extend(generation_results3)
