@@ -51,6 +51,7 @@ import concurrent.futures
 from copy import deepcopy
 import gc
 import torch
+from datetime import datetime
 
 results = {}
 #load deberta classifier
@@ -82,8 +83,9 @@ eacl_Misog_txt = " ".join(eacl_Misog)
 def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicityPrompts):
     # Use concurrent.futures to run perplexity and generation concurrently
     with concurrent.futures.ThreadPoolExecutor() as executor:
-
+        print(f"JOB 1 STARTING AT {datetime.now()}")
         #making deepcopies of models so that they're separate
+        print(f"duplicating all models at {datetime.now()}")
         ppl_model = deepcopy(model)
         ppl_model.to('cuda:0')
         ppl_model.eval()
@@ -103,12 +105,12 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
         gen_model3.to('cuda:3')
         gen_model3.eval()
         gen_tokenizer3=deepcopy(tokenizer)
-        
-        
+        print(f"models finished duplicating at {datetime.now()}")
         
         # Submit perplexity calculation as a future
         ppl_future = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, str(sample_minipile_text), 1, 'cuda:0')
-        
+        print(f" perplexity job submitted at {datetime.now()}")
+
         # Prepare generation inputs (2 outputs per prompt)
         toxic_inputs = [str(itm) for itm in realToxicityPrompts["prompt"]]
         
@@ -123,6 +125,8 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
             0.1, 
             128,  
         )
+        print(f"generation 1 job submitted at {datetime.now()}")
+
         generation_future2 = executor.submit(
             pythia_generate_batched, 
             gen_model2, 
@@ -133,6 +137,8 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
             0.1, 
             128,  
         )
+        print(f"generation 2 job submitted at {datetime.now()}")
+
         generation_future3 = executor.submit(
             pythia_generate_batched, 
             gen_model3, 
@@ -143,18 +149,32 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
             0.1, 
             128,  
         )
-        
+        print(f"generation 3 job submitted at {datetime.now()}")
+
+        print(torch.cuda.memory_summary())
+
         # Wait for and collect results
         temp_model_results = {}
         
         # Get perplexity result
         temp_model_results['perplexity_general'] = ppl_future.result()
-        
+        print(f" perplexity job retrieved at {datetime.now()}")
+        print(torch.cuda.memory_summary())
+
         # Get generation outputs - it's ugly but I don't want to try something smart in prod and then realise it doesn't work after 24h
         total_generation_results = []
         generation_results1 = generation_future1.result()
+        print(f"generation 1 job retrieved at {datetime.now()}")
+        print(torch.cuda.memory_summary())
+
         generation_results2 = generation_future2.result()
+        print(f"generation 2 job retrieved at {datetime.now()}")
+        print(torch.cuda.memory_summary())
+
         generation_results3 = generation_future3.result()
+        print(f"generation 3 job retrieved at {datetime.now()}")
+        print(torch.cuda.memory_summary())
+
         total_generation_results.extend(generation_results1)
         total_generation_results.extend(generation_results2)
         total_generation_results.extend(generation_results3)
@@ -172,79 +192,112 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
         del gen_model3
         gc.collect()
         torch.cuda.empty_cache()
-
+        print(f"models cleaned at {datetime.now()}")
         #FOR DEBUG
         print(torch.cuda.memory_summary())
-        
-        return temp_model_results
+        print(f"JOB 1 FINISHED at {datetime.now()}")
 
 def parallel_output_analysis(model, tokenizer, temp_model_results):
     # Use concurrent.futures to run perplexity and generation concurrently
     with concurrent.futures.ThreadPoolExecutor() as executor:
         #making deepcopies of models so that they're separate
+        print(f"JOB 2 START AT {datetime.now()}")
         ppl_model = deepcopy(model)
         ppl_model.to('cuda:0')
         ppl_model.eval()
         ppl_tokenizer = deepcopy(tokenizer)
+        print(f"finished duplicating models at {datetime.now()}")
 
         #llama_guard concurrency
         llama_guard_futures = []
         for output in temp_model_results["toxicity_outputs"]:
             llama_guard_futures.append(executor.submit(llamaguard_moderate, output, llamaguard_model, llamaguard_tokenizer, llamaguard_device))
+        print(f"finished submitting llama guard jobs at {datetime.now()}")
 
         #detoxify concurrency
         detoxify_futures = []
         for output in temp_model_results["toxicity_outputs"]:
             detoxify_futures.append(executor.submit(detoxify_classify, output))
-    
+        print(f"finished submitting detoxify jobs at {datetime.now()}")
+
         #farrell lexicon concurrency
         farrell_futures = []
         for output in temp_model_results["toxicity_outputs"]:
             farrell_futures.append(executor.submit(farrell_lexicon, output))
-    
+        print(f"finished submitting farrell lexicon jobs at {datetime.now()}")
+
         #ZSNLI
         ZSNLI_futures = []
         for output in temp_model_results["toxicity_outputs"]:
             ZSNLI_futures.append(executor.submit(misogyny_zsnli, ZSNLI_classifier, output))
+        print(f"finished submitting ZSNLI jobs at {datetime.now()}")
 
         #deberta classifier
         deberta_future = executor.submit(deberta_classify, deberta_model, deberta_tokenizer, deberta_device, temp_model_results["toxicity_outputs"]) # inherently batched - can change batch_size param here if reqd.
+        print(f"finished submitting deberta jobs at {datetime.now()}")
 
         #MAUVE
         mauve_semeval_nonmisog_futures = executor.submit(mauve_scores, list(temp_model_results["toxicity_outputs"]), semEval_nonMisog, 1)
+        print(f"finished submitting mauve_semeval_nonmisog_futures jobs at {datetime.now()}")
+
         mauve_semeval_misog_futures = executor.submit(mauve_scores, list(temp_model_results["toxicity_outputs"]), semEval_Misog, 1)
+        print(f"finished submitting mauve_semeval_misog_futures jobs at {datetime.now()}")
+
         mauve_eacl_nonmisog_futures = executor.submit(mauve_scores, list(temp_model_results["toxicity_outputs"]), eacl_nonMisog, 1)
+        print(f"finished submitting mauve_eacl_nonmisog_futures jobs at {datetime.now()}")
+        
         mauve_eacl_misog_futures = executor.submit(mauve_scores, list(temp_model_results["toxicity_outputs"]), eacl_Misog, 1)
+        print(f"finished submitting mauve_eacl_misog_futures jobs at {datetime.now()}")
 
         
         #Perplexity
         
         ppl_semeval_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_nonMisog_txt, 1, 'cuda:0')
+        print(f"finished submitting ppl_semeval_nonmisog_futures jobs at {datetime.now()}")
         ppl_semeval_nonmisog_results = ppl_semeval_nonmisog_futures.result() # clearing GPU vram here?
+        print(f"returned results at {datetime.now()}")
+
         ppl_semeval_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, semEval_Misog_txt, 1, 'cuda:0')
+        print(f"finished submitting ppl_semeval_misog_futures jobs at {datetime.now()}")
+
         ppl_semeval_misog_results = ppl_semeval_misog_futures.result() # clearing GPU vram here?
+        print(f"returned results at {datetime.now()}")
+
         ppl_eacl_nonmisog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_nonMisog_txt, 1, 'cuda:0')
+        print(f"finished submitting ppl_eacl_nonmisog_futures jobs at {datetime.now()}")
+
         ppl_eacl_nonmisog_results = ppl_eacl_nonmisog_futures.result() # clearing GPU vram here?
+        print(f"returned results at {datetime.now()}")
+
         ppl_eacl_misog_futures = executor.submit(ppl_batched, ppl_model, ppl_tokenizer, eacl_Misog_txt, 1, 'cuda:0')
+        print(f"finished submitting ppl_eacl_misog_futures jobs at {datetime.now()}")
+
         ppl_eacl_misog_results = ppl_eacl_misog_futures.result() # clearing GPU vram here?
-        
+        print(f"returned results at {datetime.now()}")
+
 
 
         # gather all results:
         llama_guard_results = [future.result() for future in llama_guard_futures] #<---- TEMPORARY PLACEMENT DURING DEV - MOVE TO THE END OF FUNC FOR DEPLOYMENT
         temp_model_results["llama_guard"] = llama_guard_results #<---- TEMPORARY PLACEMENT DURING DEV - MOVE TO THE END OF FUNC FOR DEPLOYMENT
+        print(f"returned llama_guard results at {datetime.now()}")
 
         detoxify_results = [future.result() for future in detoxify_futures]
         temp_model_results["detoxify"] = detoxify_results
+        print(f"returned detoxify results at {datetime.now()}")
 
         farrell_results = [future.result() for future in farrell_futures]
         temp_model_results["farrell"] = farrell_results
+        print(f"returned farrell results at {datetime.now()}")
 
         ZSNLI_results = [future.result() for future in ZSNLI_futures]
         temp_model_results["ZSNLI"] = ZSNLI_results
+        print(f"returned ZSNLI results at {datetime.now()}")
 
         deberta_results = deberta_future.result()
         temp_model_results["deberta_classifier"] = deberta_results
+        print(f"returned deberta results at {datetime.now()}")
+
 
         perplexity_results = {
             'semEval_nonMisog': ppl_semeval_nonmisog_results,
@@ -261,6 +314,8 @@ def parallel_output_analysis(model, tokenizer, temp_model_results):
             'eacl_nonMisog': mauve_eacl_nonmisog_futures.result(),
             'eacl_Misog': mauve_eacl_misog_futures.result(),
         }
+        print(f"returned MAUVE results at {datetime.now()}")
+
     
         temp_model_results["mauve_misog"] = mauve_results
         
@@ -269,7 +324,7 @@ def parallel_output_analysis(model, tokenizer, temp_model_results):
         del ppl_model
         gc.collect()
         torch.cuda.empty_cache()
-
+        print(f"JOB 2 FINISHED AT {datetime.now()}")
         return temp_model_results
 
 def main(model_name):
@@ -284,14 +339,20 @@ def main(model_name):
     # Run concurrent tasks
     temp_model_results = general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicityPrompts)
 
+    #save intermediate outputs
+    clean_model_name = model_name.split("/")[0] #assuming all root dirs here are the correct main name
+    #dumping interim outputs in case it takes ages
+    with open(f"{clean_model_name}_results-pt1.json", 'w') as f:
+        json.dump(temp_model_results, f)
+        return temp_model_results
+
     # temp_model_results["mauve_misog"] = mauve_results    
     temp_model_results = parallel_output_analysis(model, tokenizer, temp_model_results)    
 
     # FINAL RESULT WRITE
     clean_model_name = model_name.split("/")[0] #assuming all root dirs here are the correct main name
-    results[model_name] = temp_model_results
     #dumping interim outputs in case it takes ages
-    with open(f"{clean_model_name}_results.json", 'w') as f:
+    with open(f"{clean_model_name}_results-final.json", 'w') as f:
         json.dump(temp_model_results, f)
 
     del model, tokenizer
