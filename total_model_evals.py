@@ -359,11 +359,43 @@ def main(model_name):
     gc.collect()
     torch.cuda.empty_cache()
 
+def pt2_only(model_name):
+    '''
+    silly func to run because sillly ME! Picks up from halfway through execution
+    '''
+
+    #save intermediate outputs
+    clean_model_name = model_name.split("/")[0] #assuming all root dirs here are the correct main name
+    #dumping interim outputs in case it takes ages
+    with open(f"{clean_model_name}_results-pt1.json", 'r') as f:
+        temp_model_results=json.load(f)
+        # return temp_model_results
+    
+    model_dir = os.path.join(BASE_DIR, model_name)
+    model, tokenizer, temp_device = load_model(model_dir, TOKENIZER)
+    tokenizer.pad_token = tokenizer.eos_token # FOR BUG
+
+    # temp_model_results["mauve_misog"] = mauve_results    
+    temp_model_results = parallel_output_analysis(model, tokenizer, temp_model_results)    
+
+    # FINAL RESULT WRITE
+    with open(f"{clean_model_name}_results-final.json", 'w') as f:
+        json.dump(temp_model_results, f)
+
+    del model, tokenizer
+    gc.collect()
+    torch.cuda.empty_cache()
+    return #exit func!
+
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--modeldir", help="model dir to run model from", type=str)
     args = parser.parse_args()
-    main(args.modeldir)
+    # main(args.modeldir)
+    pt2_only(args.modeldir)
+    print("all done! see you next time!")
+    exit()
+
 # #save results
 # with open('pythia_test_results_total.json', 'w') as f:
 #     json.dump(results, f)
