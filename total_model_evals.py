@@ -344,7 +344,7 @@ def main(model_name):
     #dumping interim outputs in case it takes ages
     with open(f"{clean_model_name}_results-pt1.json", 'w') as f:
         json.dump(temp_model_results, f)
-        return temp_model_results
+        # return temp_model_results
 
     # temp_model_results["mauve_misog"] = mauve_results    
     temp_model_results = parallel_output_analysis(model, tokenizer, temp_model_results)    
