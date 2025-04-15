@@ -196,6 +196,7 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
         #FOR DEBUG
         print(torch.cuda.memory_summary())
         print(f"JOB 1 FINISHED at {datetime.now()}")
+        return temp_model_results
 
 def parallel_output_analysis(model, tokenizer, temp_model_results):
     # Use concurrent.futures to run perplexity and generation concurrently
@@ -391,8 +392,8 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--modeldir", help="model dir to run model from", type=str)
     args = parser.parse_args()
-    # main(args.modeldir)
-    pt2_only(args.modeldir)
+    main(args.modeldir)
+    # pt2_only(args.modeldir)
     print("all done! see you next time!")
     exit()
 
