@@ -112,7 +112,7 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
         print(f" perplexity job submitted at {datetime.now()}")
 
         # Prepare generation inputs (2 outputs per prompt)
-        toxic_inputs = [str(itm) for itm in realToxicityPrompts["prompt"]]
+        toxic_inputs = [str(itm["text"]) for itm in realToxicityPrompts["prompt"]]
         
         # Submit generation tasks - it's ugly but I don't want to try something smart in prod and then realise it doesn't work after 24h
         generation_future1 = executor.submit(
@@ -151,7 +151,11 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
         )
         print(f"generation 3 job submitted at {datetime.now()}")
 
-        print(torch.cuda.memory_summary())
+        print(torch.cuda.memory_summary(0))
+        print(torch.cuda.memory_summary(1))
+        print(torch.cuda.memory_summary(2))
+        print(torch.cuda.memory_summary(3))
+
 
         # Wait for and collect results
         temp_model_results = {}
@@ -159,21 +163,33 @@ def general_ppl_and_textgen(model, tokenizer, sample_minipile_text, realToxicity
         # Get perplexity result
         temp_model_results['perplexity_general'] = ppl_future.result()
         print(f" perplexity job retrieved at {datetime.now()}")
-        print(torch.cuda.memory_summary())
+        print(torch.cuda.memory_summary(0))
+        print(torch.cuda.memory_summary(1))
+        print(torch.cuda.memory_summary(2))
+        print(torch.cuda.memory_summary(3))
 
         # Get generation outputs - it's ugly but I don't want to try something smart in prod and then realise it doesn't work after 24h
         total_generation_results = []
         generation_results1 = generation_future1.result()
         print(f"generation 1 job retrieved at {datetime.now()}")
-        print(torch.cuda.memory_summary())
+        print(torch.cuda.memory_summary(0))
+        print(torch.cuda.memory_summary(1))
+        print(torch.cuda.memory_summary(2))
+        print(torch.cuda.memory_summary(3))
 
         generation_results2 = generation_future2.result()
         print(f"generation 2 job retrieved at {datetime.now()}")
-        print(torch.cuda.memory_summary())
+        print(torch.cuda.memory_summary(0))
+        print(torch.cuda.memory_summary(1))
+        print(torch.cuda.memory_summary(2))
+        print(torch.cuda.memory_summary(3))
 
         generation_results3 = generation_future3.result()
         print(f"generation 3 job retrieved at {datetime.now()}")
-        print(torch.cuda.memory_summary())
+        print(torch.cuda.memory_summary(0))
+        print(torch.cuda.memory_summary(1))
+        print(torch.cuda.memory_summary(2))
+        print(torch.cuda.memory_summary(3))
 
         total_generation_results.extend(generation_results1)
         total_generation_results.extend(generation_results2)
@@ -365,16 +381,18 @@ def pt2_only(model_name):
     silly func to run because sillly ME! Picks up from halfway through execution
     '''
 
+    model_dir = os.path.join(BASE_DIR, model_name)
+    model, tokenizer, temp_device = load_model(model_dir, TOKENIZER)
+    tokenizer.pad_token = tokenizer.eos_token # FOR BUG
+
+    model.to('cpu') #seems to be causing issues with memory management
+
     #save intermediate outputs
     clean_model_name = model_name.split("/")[0] #assuming all root dirs here are the correct main name
     #dumping interim outputs in case it takes ages
     with open(f"{clean_model_name}_results-pt1.json", 'r') as f:
         temp_model_results=json.load(f)
         # return temp_model_results
-    
-    model_dir = os.path.join(BASE_DIR, model_name)
-    model, tokenizer, temp_device = load_model(model_dir, TOKENIZER)
-    tokenizer.pad_token = tokenizer.eos_token # FOR BUG
 
     # temp_model_results["mauve_misog"] = mauve_results    
     temp_model_results = parallel_output_analysis(model, tokenizer, temp_model_results)    
